@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 음성 필기 및 요약</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>실시간 음성 필기</h1>
+            <button id="settings-btn" class="icon-btn"><i class="material-icons">settings</i></button>
+        </header>
+
+        <main>
+            <div class="controls">
+                <button id="record-btn" class="fab-btn"><i class="material-icons">mic</i></button>
+                <p id="status-message">버튼을 눌러 녹음을 시작하세요</p>
+            </div>
+
+            <div class="transcription-container card">
+                <h2>실시간 필기</h2>
+                <div id="interim-transcript"></div>
+                <div id="final-transcript"></div>
+            </div>
+
+            <div class="summary-container card">
+                <h2>요약</h2>
+                <div id="summary-output"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>설정</h2>
+                <button id="close-modal-btn" class="icon-btn"><i class="material-icons">close</i></button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <label for="doc-title-format">문서 제목 형식:</label>
+                    <input type="text" id="doc-title-format" value="[YYYY-MM-DD] 음성 메모">
+                </div>
+                <div class="setting-item">
+                    <label for="language-select">언어:</label>
+                    <select id="language-select">
+                        <option value="ko-KR" selected>한국어</option>
+                        <option value="en-US">English (US)</option>
+                        <option value="ja-JP">日本語</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label for="summary-format">요약 형식:</label>
+                    <select id="summary-format">
+                        <option value="bullet" selected>주요 항목 (Bullet Points)</option>
+                        <option value="paragraph">문단 (Paragraph)</option>
+                    </select>
+                </div>
+                 <div class="setting-item">
+                    <label for="theme-select">테마:</label>
+                    <select id="theme-select">
+                        <option value="light" selected>라이트</option>
+                        <option value="dark">다크</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label for="font-size-slider">글자 크기:</label>
+                    <input type="range" id="font-size-slider" min="12" max="24" value="16">
+                </div>
+                <div class="setting-item">
+                    <label for="gemini-api-key">Gemini API 키:</label>
+                    <input type="password" id="gemini-api-key">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="save-settings-btn" class="btn">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
