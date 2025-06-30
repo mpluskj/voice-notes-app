@@ -1,0 +1,29 @@
+# Gitignore for voice-notes-app
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.env
+
+# Google API credentials and tokens
+backend/credentials.json
+backend/token.json
+
+# IDEs and other
+.vscode/
+.idea/
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Frontend build artifacts (if any)
+dist/
+build/
+
+# Other
+.git_commit_message.txt
