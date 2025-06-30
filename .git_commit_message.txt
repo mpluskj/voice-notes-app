@@ -1,1 +1,1 @@
-fix: Use absolute paths for static files in main.py
+fix: Correct FRONTEND_DIR definition order in main.py

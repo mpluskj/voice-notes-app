@@ -25,7 +25,9 @@ app = FastAPI()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.join(BASE_DIR, "..", "frontend")
 
-# Check if credentials.json exists, if not, try to get from environment variable
+# --- 상수 정의 ---
+CREDENTIALS_FILE = 'credentials.json'
+TOKEN_FILE = 'token.json'
 if not os.path.exists(CREDENTIALS_FILE):
     google_credentials_json = os.getenv('GOOGLE_CREDENTIALS_JSON')
     if google_credentials_json:
