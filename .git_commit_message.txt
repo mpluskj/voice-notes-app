@@ -1,1 +1,1 @@
-feat: Prepare for Render deployment (env vars, Procfile)
+fix: Use absolute paths for static files in main.py

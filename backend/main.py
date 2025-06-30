@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse
 import logging
 import os
+import os # os 모듈 임포트 추가
 import json
 import asyncio
 
@@ -20,11 +21,9 @@ import google.generativeai as genai
 logging.basicConfig(level=logging.INFO)
 app = FastAPI()
 
-
-
-# --- 상수 정의 ---
-CREDENTIALS_FILE = 'credentials.json'
-TOKEN_FILE = 'token.json'
+# 현재 파일(main.py)의 디렉토리 경로를 기준으로 frontend 디렉토리의 절대 경로를 계산
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.join(BASE_DIR, "..", "frontend")
 
 # Check if credentials.json exists, if not, try to get from environment variable
 if not os.path.exists(CREDENTIALS_FILE):
