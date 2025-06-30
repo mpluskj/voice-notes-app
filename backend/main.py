@@ -127,7 +127,7 @@ async def login(request: Request):
 @app.get("/oauth2callback")
 async def oauth2callback(request: Request):
     try:
-        flow = Flow.from_client_secrets_file(CREDENTIALS_FILE, scopes=SCOPES, redirect_uri=request.url_for('oauth2callback')._url.replace("http://", "https://", 1))
+        flow = Flow.from_client_secrets_file(CREDENTIALS_FILE, scopes=SCOPES, redirect_uri=request.url_for('oauth2callback')._url)
         flow.fetch_token(authorization_response=str(request.url))
         with open(TOKEN_FILE, 'w') as token_file:
             token_file.write(flow.credentials.to_json())

@@ -1,1 +1,1 @@
-fix: Correct CREDENTIALS_FILE definition order in main.py
+fix: Use wss:// for WebSocket connection in frontend
