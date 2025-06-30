@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const newDocRadio = document.getElementById('new-doc');
     const appendDocRadio = document.getElementById('append-doc');
     const docIdInput = document.getElementById('doc-id-input');
+    const geminiApiKeyInput = document.getElementById('gemini-api-key');
 
     // Document Selection Modal Elements
     const docSelectionModal = document.getElementById('doc-selection-modal');
@@ -37,13 +38,61 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- State ---
+    let isLoggedIn = false;
     let isRecording = false;
     let ws = null; // WebSocket instance
     let finalTranscript = ''; // To accumulate final transcripts
+    let currentDocId = null; // Store the ID of the current Google Doc
+
+    // --- Authentication ---
+    async function checkAuthStatus() {
+        try {
+            const response = await fetch('/auth/status');
+            const data = await response.json();
+            isLoggedIn = data.logged_in;
+            updateUIForAuthState();
+        } catch (error) {
+            console.error('Error checking auth status:', error);
+            isLoggedIn = false;
+            updateUIForAuthState();
+        }
+    }
+
+    function updateUIForAuthState() {
+        const existingLoginBtn = document.getElementById('login-btn');
+        if (existingLoginBtn) existingLoginBtn.remove();
+        const existingLogoutBtn = document.getElementById('logout-btn');
+        if (existingLogoutBtn) existingLogoutBtn.remove();
+
+        if (isLoggedIn) {
+            const logoutBtn = document.createElement('button');
+            logoutBtn.id = 'logout-btn';
+            logoutBtn.className = 'btn';
+            logoutBtn.textContent = '로그아웃';
+            logoutBtn.addEventListener('click', async () => {
+                if(isRecording) await stopRecording();
+                await fetch('/logout', { method: 'POST' });
+                isLoggedIn = false;
+                updateUIForAuthState();
+            });
+            header.appendChild(logoutBtn);
+            recordBtn.disabled = false;
+            statusMessage.textContent = '버튼을 눌러 녹음을 시작하세요';
+        } else {
+            const loginBtn = document.createElement('button');
+            loginBtn.id = 'login-btn';
+            loginBtn.className = 'btn';
+            loginBtn.textContent = 'Google 계정으로 로그인';
+            loginBtn.addEventListener('click', () => window.location.href = '/login');
+            header.appendChild(loginBtn);
+            recordBtn.disabled = true;
+            statusMessage.textContent = '먼저 로그인해주세요';
+        }
+    }
 
     // --- Real-time Transcription & Summarization ---
     async function startRecording(docMode, docId) {
-        if (isRecording) return;
+        if (isRecording || !isLoggedIn) return;
 
         isRecording = true;
         updateRecordButton();
@@ -58,9 +107,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const docTitle = settings.docTitleFormat.replace('[YYYY-MM-DD]', new Date().toISOString().slice(0, 10));
 
         // WebSocket 연결
-        ws = new WebSocket(`ws://localhost:8000/ws/transcribe`);
+        ws = new WebSocket(`ws://${window.location.host}/ws/transcribe`);
 
-        ws.onopen = () => {
+        ws.onopen = async () => {
             statusMessage.textContent = '서버 연결됨. 마이크 접근 중...';
             // Send configuration to backend
             ws.send(JSON.stringify({
@@ -69,6 +118,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 docMode: docMode,
                 docId: docId
             }));
+
+            // Start audio processing
+            try {
+                const audioStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 16000 } });
+                const audioContext = new AudioContext({ sampleRate: 16000 });
+                await audioContext.audioWorklet.addModule('/js/audio-processor.js');
+                
+                const source = audioContext.createMediaStreamSource(audioStream);
+                const processorNode = new AudioWorkletNode(audioContext, 'audio-processor');
+                processorNode.port.onmessage = (event) => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(event.data);
+                    }
+                };
+                source.connect(processorNode).connect(audioContext.destination);
+                statusMessage.textContent = '녹음 중... 말하기 시작하세요.';
+            } catch (error) {
+                console.error('Error starting audio processing:', error);
+                statusMessage.textContent = `오류: ${error.message}`;
+                stopRecording();
+            }
         };
 
         ws.onmessage = (event) => {
@@ -82,6 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     interimTranscriptEl.textContent = data.text;
                 }
             } else if (data.type === 'doc_created') {
+                currentDocId = data.doc_id;
                 // Display the created document ID if in new doc mode
                 if (docMode === 'new') {
                     statusMessage.textContent = `새 문서 생성됨: ${data.doc_id}`;
@@ -133,10 +204,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function generateSummary(textToSummarize) {
-        if (!textToSummarize || textToSummarize.trim().length === 0) {
-            summaryOutputEl.textContent = '요약할 내용이 없습니다.';
-            statusMessage.textContent = '요약할 내용이 없습니다.';
+    async function generateSummary() {
+        if (!currentDocId) {
+            summaryOutputEl.textContent = '요약할 문서 ID가 없습니다.';
+            statusMessage.textContent = '요약할 문서 ID가 없습니다.';
             return;
         }
         
@@ -147,9 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    doc_id: settings.docId, // Pass the current docId for summarization context if needed
+                    doc_id: currentDocId, // Pass the current docId for summarization context
                     summary_format: settings.summaryFormat,
-                    api_key: settings.geminiApiKey // Assuming you'll add this to settings
+                    api_key: settings.geminiApiKey
                 })
             });
 
@@ -206,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
             docIdInput.value = settings.docId;
             docIdInput.disabled = (settings.docMode === 'new');
             // Gemini API Key
-            document.getElementById('gemini-api-key').value = settings.geminiApiKey;
+            geminiApiKeyInput.value = settings.geminiApiKey;
             
             applyTheme(settings.theme);
             applyFontSize(settings.fontSize);
@@ -223,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fontSize: fontSizeSlider.value,
             docMode: newDocRadio.checked ? 'new' : 'append',
             docId: docIdInput.value,
-            geminiApiKey: document.getElementById('gemini-api-key').value
+            geminiApiKey: geminiApiKeyInput.value
         };
         localStorage.setItem('voiceNotesSettings', JSON.stringify(settings));
         return settings;
@@ -289,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Post-recording Actions ---
     summarizeBtn.addEventListener('click', async () => {
         statusMessage.textContent = '요약을 생성합니다...';
-        await generateSummary(finalTranscript);
+        await generateSummary(); // No need to pass finalTranscript, it's already in currentDocId
         postRecordingActions.style.display = 'none'; // Hide buttons after action
     });
 
@@ -309,4 +380,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initial Load ---
     loadSettings();
+    checkAuthStatus();
 });
