@@ -1,7 +1,1 @@
-Merge remote-tracking branch 'origin/main'
-
-# Conflicts:
-#	.gitignore
-#	backend/main.py
-#	frontend/index.html
-#	frontend/js/script.js
+feat: Prepare for Render deployment (env vars, Procfile)

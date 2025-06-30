@@ -44,8 +44,8 @@ SCOPES = [
 ]
 
 # --- 정적 파일 제공 ---
-app.mount("/css", StaticFiles(directory="../frontend/css"), name="css")
-app.mount("/js", StaticFiles(directory="../frontend/js"), name="js")
+app.mount("/css", StaticFiles(directory=os.path.join(FRONTEND_DIR, "css")), name="css")
+app.mount("/js", StaticFiles(directory=os.path.join(FRONTEND_DIR, "js")), name="js")
 
 # --- Google API 헬퍼 함수 ---
 def get_credentials():
