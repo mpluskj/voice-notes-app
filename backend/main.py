@@ -25,6 +25,19 @@ app = FastAPI()
 # --- 상수 정의 ---
 CREDENTIALS_FILE = 'credentials.json'
 TOKEN_FILE = 'token.json'
+
+# Check if credentials.json exists, if not, try to get from environment variable
+if not os.path.exists(CREDENTIALS_FILE):
+    google_credentials_json = os.getenv('GOOGLE_CREDENTIALS_JSON')
+    if google_credentials_json:
+        try:
+            with open(CREDENTIALS_FILE, 'w') as f:
+                f.write(google_credentials_json)
+            logging.info("credentials.json created from GOOGLE_CREDENTIALS_JSON environment variable.")
+        except Exception as e:
+            logging.error(f"Error writing credentials.json from env var: {e}")
+    else:
+        logging.warning("credentials.json not found and GOOGLE_CREDENTIALS_JSON environment variable is not set.")
 SCOPES = [
     'https://www.googleapis.com/auth/documents',
     'https://www.googleapis.com/auth/drive.file'
@@ -99,7 +112,7 @@ def get_doc_content(creds, doc_id):
 
 # --- 라우팅 ---
 @app.get("/")
-async def read_index(): return FileResponse("..\\frontend\\index.html")
+async def read_index(): return FileResponse("frontend/index.html")
 
 @app.get("/auth/status")
 async def auth_status(): return {"logged_in": get_credentials() is not None}

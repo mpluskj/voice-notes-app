@@ -1,1 +1,7 @@
-\"Initial commit: Voice Notes App\"  
+Merge remote-tracking branch 'origin/main'
+
+# Conflicts:
+#	.gitignore
+#	backend/main.py
+#	frontend/index.html
+#	frontend/js/script.js
