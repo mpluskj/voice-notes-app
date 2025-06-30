@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const docTitle = settings.docTitleFormat.replace('[YYYY-MM-DD]', new Date().toISOString().slice(0, 10));
 
         // WebSocket 연결
-        ws = new WebSocket(`ws://${window.location.host}/ws/transcribe`);
+        ws = new WebSocket(`wss://${window.location.host}/ws/transcribe`);
 
         ws.onopen = async () => {
             statusMessage.textContent = '서버 연결됨. 마이크 접근 중...';

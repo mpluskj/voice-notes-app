@@ -1,1 +1,1 @@
-fix: Correct FRONTEND_DIR definition order in main.py
+fix: Correct CREDENTIALS_FILE definition order in main.py
