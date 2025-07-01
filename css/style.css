@@ -6,6 +6,7 @@
     --card-background-color: #fff;
     --border-color: #e0e0e0;
     --modal-background: rgba(0,0,0,0.5);
+    --highlight-color: #FFFF00; /* Highlight color */
 }
 
 [data-theme="dark"] {
@@ -15,6 +16,7 @@
     --text-color: #e8eaed;
     --card-background-color: #303134;
     --border-color: #5f6368;
+    --highlight-color: #FFD700; /* Dark mode highlight color */
 }
 
 body {
@@ -173,4 +175,9 @@ h2 {
 }
 .icon-btn:hover {
     background-color: rgba(0,0,0,0.1);
+}
+
+.highlight {
+    background-color: var(--highlight-color);
+    padding: 2px 0;
 }

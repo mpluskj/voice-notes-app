@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeSelect = document.getElementById('theme-select');
     const fontSizeSlider = document.getElementById('font-size-slider');
     const geminiApiKeyInput = document.getElementById('gemini-api-key');
+    const recordAudioCheckbox = document.getElementById('record-audio-checkbox');
 
     // Post-recording Action Buttons
     const postRecordingActions = document.getElementById('post-recording-actions');
@@ -28,10 +29,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadFileBtn = document.getElementById('load-file-btn');
     const exportFormatSelect = document.getElementById('export-format-select');
 
+    const searchInput = document.getElementById('search-input');
+    const searchBtn = document.getElementById('search-btn');
+
 
     // --- State ---
     let isRecording = false;
     let recognition = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let audioBlobUrl = null;
+    let audioStartTime = 0;
 
     // --- Local Storage Management ---
     function loadTranscript() {
@@ -43,7 +51,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveTranscript() {
-        localStorage.setItem('finalTranscript', finalTranscriptEl.textContent);
+        localStorage.setItem('finalTranscript', finalTranscriptEl.innerHTML); // Save innerHTML to preserve spans
+    }
+
+    // --- Search Functionality ---
+    function searchTranscript() {
+        const searchTerm = searchInput.value.trim();
+        if (!searchTerm) {
+            // If search term is empty, restore original transcript
+            finalTranscriptEl.innerHTML = localStorage.getItem('finalTranscript') || '';
+            return;
+        }
+
+        const originalContent = localStorage.getItem('finalTranscript') || '';
+        let highlightedContent = originalContent;
+
+        // Create a regex for the search term, case-insensitive
+        const regex = new RegExp(`(${searchTerm})`, 'gi');
+
+        // Replace matches with highlighted span, avoiding re-highlighting existing spans
+        highlightedContent = highlightedContent.replace(regex, '<span class="highlight">$1</span>');
+
+        finalTranscriptEl.innerHTML = highlightedContent;
     }
 
     // --- Real-time Transcription ---
@@ -65,6 +94,33 @@ document.addEventListener('DOMContentLoaded', () => {
         postRecordingActions.style.display = 'none';
         saveTranscript(); // Save current (empty) state
 
+        // Audio Recording Setup
+        if (settings.recordAudio) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                audioStartTime = Date.now();
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    audioBlobUrl = URL.createObjectURL(audioBlob);
+                    // You might want to add a UI element to play this audio
+                };
+
+                mediaRecorder.start();
+                statusMessage.textContent = '녹음 중... (오디오 기록 중)';
+            } catch (error) {
+                console.error('Error starting audio recording:', error);
+                statusMessage.textContent = `오류: 오디오 기록 시작 실패 - ${error.message}`;
+                // Proceed with speech recognition even if audio recording fails
+            }
+        }
+
         recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         recognition.lang = settings.language;
         recognition.interimResults = true;
@@ -74,7 +130,20 @@ document.addEventListener('DOMContentLoaded', () => {
             let interimTranscript = '';
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 if (event.results[i].isFinal) {
-                    finalTranscriptEl.textContent += event.results[i][0].transcript + '\n'; // Add newline for final transcript
+                    const timestamp = (Date.now() - audioStartTime) / 1000; // seconds
+                    const timestampFormatted = new Date(timestamp * 1000).toISOString().substr(11, 8); // HH:MM:SS
+                    const span = document.createElement('span');
+                    span.textContent = event.results[i][0].transcript + '\n';
+                    span.dataset.timestamp = timestamp;
+                    span.classList.add('transcript-segment');
+                    span.addEventListener('click', () => {
+                        if (audioBlobUrl) {
+                            const audio = new Audio(audioBlobUrl);
+                            audio.currentTime = timestamp;
+                            audio.play();
+                        }
+                    });
+                    finalTranscriptEl.appendChild(span);
                     saveTranscript(); // Save after each final transcript update
                 } else {
                     interimTranscript += event.results[i][0].transcript;
@@ -106,6 +175,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (recognition) {
             recognition.stop();
             recognition = null;
+        }
+
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
         }
 
         updateRecordButton();
@@ -176,7 +249,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let filename = `${title}`;
         let mimeType = 'text/plain;charset=utf-8';
 
-        const transcriptContent = finalTranscriptEl.textContent;
+        const transcriptContent = finalTranscriptEl.innerText; // Use innerText for plain text
+        const transcriptHtml = finalTranscriptEl.innerHTML; // Use innerHTML for HTML export
         const summaryContent = summaryOutputEl.innerText;
 
         switch (format) {
@@ -209,13 +283,15 @@ ${summaryContent}`;
     <style>
         body { font-family: sans-serif; line-height: 1.6; }
         h1, h2 { color: #333; }
+        .transcript-segment { cursor: pointer; background-color: #e0e0e0; padding: 2px 5px; border-radius: 3px; margin-right: 5px; display: inline-block; }
+        .transcript-segment:hover { background-color: #c0c0c0; }
         pre { background-color: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
     </style>
 </head>
 <body>
     <h1>${title}</h1>
     <h2>녹음 내용</h2>
-    <pre>${transcriptContent}</pre>
+    <div>${transcriptHtml}</div>
     <h2>요약</h2>
     <pre>${summaryContent}</pre>
 </body>
@@ -263,7 +339,8 @@ ${summaryContent}`;
         summaryFormat: 'bullet',
         theme: 'light',
         fontSize: 16,
-        geminiApiKey: ''
+        geminiApiKey: '',
+        recordAudio: false
     };
 
     function loadSettings(applyUI = true) {
@@ -277,6 +354,7 @@ ${summaryContent}`;
             themeSelect.value = settings.theme;
             fontSizeSlider.value = settings.fontSize;
             geminiApiKeyInput.value = settings.geminiApiKey;
+            recordAudioCheckbox.checked = settings.recordAudio;
 
             applyTheme(settings.theme);
             applyFontSize(settings.fontSize);
@@ -291,7 +369,8 @@ ${summaryContent}`;
             summaryFormat: summaryFormatSelect.value,
             theme: themeSelect.value,
             fontSize: fontSizeSlider.value,
-            geminiApiKey: geminiApiKeyInput.value
+            geminiApiKey: geminiApiKeyInput.value,
+            recordAudio: recordAudioCheckbox.checked
         };
         localStorage.setItem('voiceNotesSettings', JSON.stringify(settings));
         return settings;
@@ -342,12 +421,15 @@ ${summaryContent}`;
 
     discardBtn.addEventListener('click', () => {
         interimTranscriptEl.textContent = '';
-        finalTranscriptEl.textContent = '';
+        finalTranscriptEl.innerHTML = ''; // Use innerHTML to clear spans
         summaryOutputEl.innerHTML = '';
         statusMessage.textContent = '버튼을 눌러 녹음을 시작하세요';
         postRecordingActions.style.display = 'none';
         saveTranscript(); // Clear saved transcript
-    });
+        if (audioBlobUrl) {
+            URL.revokeObjectURL(audioBlobUrl);
+            audioBlobUrl = null;
+        }
 
     loadFileBtn.addEventListener('click', () => {
         fileInput.click();
@@ -361,8 +443,7 @@ ${summaryContent}`;
 
         const reader = new FileReader();
         reader.onload = (e) => {
-            finalTranscript = e.target.result;
-            finalTranscriptEl.textContent = finalTranscript;
+            finalTranscriptEl.innerHTML = e.target.result; // Use innerHTML for loaded content
             interimTranscriptEl.textContent = '';
             summaryOutputEl.innerHTML = '';
             statusMessage.textContent = '파일이 불러와졌습니다. 요약 버튼을 누르세요.';
@@ -370,6 +451,13 @@ ${summaryContent}`;
             saveTranscript(); // Save loaded transcript
         };
         reader.readAsText(file);
+    });
+
+    searchBtn.addEventListener('click', searchTranscript);
+    searchInput.addEventListener('keyup', (event) => {
+        if (event.key === 'Enter') {
+            searchTranscript();
+        }
     });
 
     // --- Initial Load ---

@@ -21,6 +21,8 @@
                 <p id="status-message">버튼을 눌러 녹음을 시작하세요</p>
                 <input type="file" id="file-input" accept=".txt" style="display: none;">
                 <button id="load-file-btn" class="btn">파일 불러오기</button>
+                <input type="text" id="search-input" placeholder="검색어를 입력하세요">
+                <button id="search-btn" class="btn">검색</button>
             </div>
 
             <div class="transcription-container card">
@@ -90,6 +92,10 @@
                 <div class="setting-item">
                     <label for="gemini-api-key">Gemini API 키:</label>
                     <input type="password" id="gemini-api-key">
+                </div>
+                <div class="setting-item">
+                    <label for="record-audio-checkbox">오디오 기록:</label>
+                    <input type="checkbox" id="record-audio-checkbox">
                 </div>
             </div>
             <div class="modal-footer">
