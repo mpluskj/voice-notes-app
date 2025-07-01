@@ -39,6 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const ttsBtn = document.getElementById('tts-btn');
     const noteTitleInput = document.getElementById('note-title-input');
 
+    const exportAllNotesBtn = document.getElementById('export-all-notes-btn');
+    const importAllNotesBtn = document.getElementById('import-all-notes-btn');
+    const importAllNotesFileInput = document.getElementById('import-all-notes-file-input');
+
 
     // --- State ---
     let isRecording = false;
@@ -515,6 +519,44 @@ ${summaryContent}`;
         }
     }
 
+    function exportAllNotes() {
+        const dataStr = JSON.stringify(notes, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'voice_notes_backup.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        statusMessage.textContent = '모든 노트가 JSON 파일로 내보내졌습니다.';
+    }
+
+    function importAllNotes(event) {
+        const file = event.target.files[0];
+        if (!file) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importedNotes = JSON.parse(e.target.result);
+                if (Array.isArray(importedNotes)) {
+                    notes = importedNotes; // Overwrite existing notes
+                    saveNotes();
+                    loadNotes(); // Reload UI with imported notes
+                    statusMessage.textContent = '모든 노트가 성공적으로 불러와졌습니다.';
+                } else {
+                    alert('유효하지 않은 JSON 파일 형식입니다.');
+                }
+            } catch (error) {
+                console.error('Error importing notes:', error);
+                alert('노트 불러오기 실패: 유효한 JSON 파일이 아닙니다.');
+            }
+        };
+        reader.readAsText(file);
+    }
+
     // --- Settings ---
     const defaultSettings = {
         docTitleFormat: '[YYYY-MM-DD] 음성 메모',
@@ -581,6 +623,14 @@ ${summaryContent}`;
         settingsModal.style.display = 'none';
         alert('설정이 저장되었습니다.');
     });
+
+    exportAllNotesBtn.addEventListener('click', exportAllNotes);
+
+    importAllNotesBtn.addEventListener('click', () => {
+        importAllNotesFileInput.click();
+    });
+
+    importAllNotesFileInput.addEventListener('change', importAllNotes);
 
     recordBtn.addEventListener('click', () => {
         if (isRecording) {
