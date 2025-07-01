@@ -21,6 +21,7 @@
                 <p id="status-message">버튼을 눌러 녹음을 시작하세요</p>
                 <input type="file" id="file-input" accept=".txt" style="display: none;">
                 <button id="load-file-btn" class="btn">파일 불러오기</button>
+                <button id="new-note-btn" class="btn">새 노트</button>
                 <input type="text" id="search-input" placeholder="검색어를 입력하세요">
                 <button id="search-btn" class="btn">검색</button>
             </div>
@@ -47,6 +48,12 @@
                     </select>
                 </div>
                 <button id="discard-btn" class="btn">취소/삭제</button>
+            </div>
+
+            <div class="tag-input-container card">
+                <h2>태그</h2>
+                <input type="text" id="tag-input" placeholder="태그를 입력하세요 (쉼표로 구분)">
+                <div id="tags-display"></div>
             </div>
         </main>
     </div>

@@ -32,6 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
     const searchBtn = document.getElementById('search-btn');
 
+    const tagInput = document.getElementById('tag-input');
+    const tagsDisplay = document.getElementById('tags-display');
+    const newNoteBtn = document.getElementById('new-note-btn');
+    const notesListEl = document.getElementById('notes-list');
+
 
     // --- State ---
     let isRecording = false;
@@ -40,18 +45,136 @@ document.addEventListener('DOMContentLoaded', () => {
     let audioChunks = [];
     let audioBlobUrl = null;
     let audioStartTime = 0;
+    let notes = []; // Array to store all notes
+    let currentNoteId = null; // ID of the currently active note
 
     // --- Local Storage Management ---
-    function loadTranscript() {
-        const savedTranscript = localStorage.getItem('finalTranscript');
-        if (savedTranscript) {
-            finalTranscriptEl.textContent = savedTranscript;
-            postRecordingActions.style.display = 'flex'; // Show actions if there's saved content
+    function loadNotes() {
+        notes = JSON.parse(localStorage.getItem('voiceNotes')) || [];
+        renderNotesList();
+        if (notes.length > 0) {
+            loadNote(notes[0].id); // Load the first note by default
+        } else {
+            createNote(); // Create a new note if none exist
         }
     }
 
-    function saveTranscript() {
-        localStorage.setItem('finalTranscript', finalTranscriptEl.innerHTML); // Save innerHTML to preserve spans
+    function saveNotes() {
+        localStorage.setItem('voiceNotes', JSON.stringify(notes));
+    }
+
+    function createNote() {
+        const newNote = {
+            id: Date.now().toString(),
+            title: '새 노트',
+            transcript: '',
+            summary: '',
+            tags: [],
+            audioBlobUrl: null,
+            timestamp: new Date().toISOString()
+        };
+        notes.unshift(newNote); // Add to the beginning
+        saveNotes();
+        loadNote(newNote.id);
+    }
+
+    function loadNote(id) {
+        const note = notes.find(n => n.id === id);
+        if (note) {
+            currentNoteId = note.id;
+            finalTranscriptEl.innerHTML = note.transcript || '';
+            summaryOutputEl.innerHTML = note.summary || '';
+            renderTags(note.tags || []);
+            audioBlobUrl = note.audioBlobUrl || null;
+            postRecordingActions.style.display = 'flex';
+            statusMessage.textContent = '노트가 불러와졌습니다.';
+            renderNotesList(); // Update active state in list
+        } else {
+            console.error('Note not found:', id);
+        }
+    }
+
+    function saveNote() {
+        if (!currentNoteId) return; // No note active
+
+        const noteIndex = notes.findIndex(n => n.id === currentNoteId);
+        if (noteIndex > -1) {
+            notes[noteIndex].transcript = finalTranscriptEl.innerHTML;
+            notes[noteIndex].summary = summaryOutputEl.innerHTML;
+            notes[noteIndex].tags = Array.from(tagsDisplay.querySelectorAll('.tag-item')).map(tagEl => tagEl.textContent.replace(' x', ''));
+            notes[noteIndex].audioBlobUrl = audioBlobUrl;
+            notes[noteIndex].timestamp = new Date().toISOString(); // Update timestamp on save
+            saveNotes();
+            renderNotesList(); // Update list to reflect changes
+        }
+    }
+
+    function renderNotesList() {
+        notesListEl.innerHTML = '';
+        notes.forEach(note => {
+            const noteItem = document.createElement('div');
+            noteItem.classList.add('note-item');
+            if (note.id === currentNoteId) {
+                noteItem.classList.add('active');
+            }
+            noteItem.dataset.noteId = note.id;
+            noteItem.innerHTML = `
+                <h3>${note.title}</h3>
+                <p>${note.transcript.substring(0, 100).replace(/<[^>]*>/g, '')}...</p>
+                <div class="note-tags">${note.tags.map(tag => `<span class="tag-item">${tag}</span>`).join('')}</div>
+                <button class="delete-note-btn" data-id="${note.id}">삭제</button>
+            `;
+            noteItem.addEventListener('click', (event) => {
+                if (!event.target.classList.contains('delete-note-btn')) {
+                    loadNote(note.id);
+                }
+            });
+            notesListEl.appendChild(noteItem);
+        });
+
+        // Add event listeners for delete buttons
+        notesListEl.querySelectorAll('.delete-note-btn').forEach(btn => {
+            btn.addEventListener('click', (event) => {
+                event.stopPropagation(); // Prevent loading the note
+                const noteIdToDelete = event.target.dataset.id;
+                if (confirm('정말로 이 노트를 삭제하시겠습니까?')) {
+                    deleteNote(noteIdToDelete);
+                }
+            });
+        });
+    }
+
+    function deleteNote(id) {
+        notes = notes.filter(note => note.id !== id);
+        saveNotes();
+        if (currentNoteId === id) {
+            // If deleted note was active, create a new one or load another
+            if (notes.length > 0) {
+                loadNote(notes[0].id);
+            } else {
+                createNote();
+            }
+        } else {
+            renderNotesList(); // Just re-render the list
+        }
+    }
+
+    function renderTags(tags) {
+        tagsDisplay.innerHTML = '';
+        tags.forEach(tag => {
+            const tagSpan = document.createElement('span');
+            tagSpan.classList.add('tag-item');
+            tagSpan.textContent = tag;
+            const removeBtn = document.createElement('span');
+            removeBtn.textContent = ' x';
+            removeBtn.classList.add('remove-tag');
+            removeBtn.addEventListener('click', () => {
+                tagSpan.remove();
+                saveTranscript();
+            });
+            tagSpan.appendChild(removeBtn);
+            tagsDisplay.appendChild(tagSpan);
+        });
     }
 
     // --- Search Functionality ---
@@ -92,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
         finalTranscriptEl.textContent = '';
         summaryOutputEl.innerHTML = '';
         postRecordingActions.style.display = 'none';
-        saveTranscript(); // Save current (empty) state
+        saveNote(); // Save current (empty) state
 
         // Audio Recording Setup
         if (settings.recordAudio) {
@@ -144,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                     finalTranscriptEl.appendChild(span);
-                    saveTranscript(); // Save after each final transcript update
+                    saveNote(); // Save after each final transcript update
                 } else {
                     interimTranscript += event.results[i][0].transcript;
                 }
@@ -191,6 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (finalTranscriptEl.textContent.trim().length > 0) {
             statusMessage.textContent = '녹음 완료.';
             postRecordingActions.style.display = 'flex';
+            saveNote(); // Save final transcript on stop
         } else {
             statusMessage.textContent = '녹음이 중지되었습니다. 인식된 내용이 없습니다.';
             postRecordingActions.style.display = 'none';
@@ -215,7 +339,9 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryOutputEl.textContent = '요약 중...';
 
         try {
-            const prompt = `다음 텍스트를 요약해줘. 요약 형식: ${settings.summaryFormat}\n\n${finalTranscript}`;
+            const prompt = `다음 텍스트를 요약해줘. 요약 형식: ${settings.summaryFormat}
+
+${finalTranscriptEl.innerText}`;
             const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: {
@@ -420,19 +546,28 @@ ${summaryContent}`;
     });
 
     discardBtn.addEventListener('click', () => {
+        if (currentNoteId) {
+            deleteNote(currentNoteId);
+        }
         interimTranscriptEl.textContent = '';
         finalTranscriptEl.innerHTML = ''; // Use innerHTML to clear spans
         summaryOutputEl.innerHTML = '';
         statusMessage.textContent = '버튼을 눌러 녹음을 시작하세요';
         postRecordingActions.style.display = 'none';
-        saveTranscript(); // Clear saved transcript
         if (audioBlobUrl) {
             URL.revokeObjectURL(audioBlobUrl);
             audioBlobUrl = null;
         }
+    });
+
+    finalTranscriptEl.addEventListener('input', saveNote);
 
     loadFileBtn.addEventListener('click', () => {
         fileInput.click();
+    });
+
+    newNoteBtn.addEventListener('click', () => {
+        createNote();
     });
 
     fileInput.addEventListener('change', (event) => {
@@ -443,12 +578,13 @@ ${summaryContent}`;
 
         const reader = new FileReader();
         reader.onload = (e) => {
+            createNote(); // Create a new note for the loaded file
             finalTranscriptEl.innerHTML = e.target.result; // Use innerHTML for loaded content
             interimTranscriptEl.textContent = '';
             summaryOutputEl.innerHTML = '';
             statusMessage.textContent = '파일이 불러와졌습니다. 요약 버튼을 누르세요.';
             postRecordingActions.style.display = 'flex';
-            saveTranscript(); // Save loaded transcript
+            saveNote(); // Save loaded transcript to the new note
         };
         reader.readAsText(file);
     });
@@ -462,8 +598,30 @@ ${summaryContent}`;
 
     // --- Initial Load ---
     loadSettings();
-    loadTranscript(); // Load saved transcript
+    loadNotes(); // Load all notes
     // Remove auth check
     recordBtn.disabled = false;
     statusMessage.textContent = '버튼을 눌러 녹음을 시작하세요';
-});
+
+    // Tag Input Event Listeners
+    tagInput.addEventListener('keyup', (event) => {
+        if (event.key === 'Enter') {
+            const tags = tagInput.value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+            if (tags.length > 0) {
+                const currentTags = Array.from(tagsDisplay.querySelectorAll('.tag-item')).map(tagEl => tagEl.textContent.replace(' x', ''));
+                const newTags = [...new Set([...currentTags, ...tags])]; // Add new tags, remove duplicates
+                renderTags(newTags);
+                saveTranscript();
+                tagInput.value = '';
+            }
+        }
+    });
+
+    tagsDisplay.addEventListener('click', (event) => {
+        if (event.target.classList.contains('tag-item')) {
+            const clickedTag = event.target.textContent.replace(' x', '');
+            // Filter notes by tag
+            const filteredNotes = notes.filter(note => note.tags.includes(clickedTag));
+            renderNotesList(filteredNotes); // Render only filtered notes
+        }
+    });
