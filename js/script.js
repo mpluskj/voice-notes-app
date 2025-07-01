@@ -47,6 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let audioStartTime = 0;
     let notes = []; // Array to store all notes
     let currentNoteId = null; // ID of the currently active note
+    let history = []; // Stores snapshots of the transcript for undo/redo
+    let historyIndex = -1; // Current position in the history array
 
     // --- Local Storage Management ---
     function loadNotes() {
@@ -76,6 +78,9 @@ document.addEventListener('DOMContentLoaded', () => {
         notes.unshift(newNote); // Add to the beginning
         saveNotes();
         loadNote(newNote.id);
+        history = ['']; // Initialize history for new note
+        historyIndex = 0;
+        updateUndoRedoButtons();
     }
 
     function loadNote(id) {
@@ -89,7 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
             postRecordingActions.style.display = 'flex';
             statusMessage.textContent = '노트가 불러와졌습니다.';
             renderNotesList(); // Update active state in list
-        } else {
+            history = [note.transcript || '']; // Initialize history with current transcript
+            historyIndex = 0;
+            updateUndoRedoButtons();
             console.error('Note not found:', id);
         }
     }
@@ -106,7 +113,18 @@ document.addEventListener('DOMContentLoaded', () => {
             notes[noteIndex].timestamp = new Date().toISOString(); // Update timestamp on save
             saveNotes();
             renderNotesList(); // Update list to reflect changes
+            addHistoryEntry(finalTranscriptEl.innerHTML); // Add to undo history
         }
+    }
+
+    function addHistoryEntry(content) {
+        // If we undo and then type something new, we truncate the redo history
+        if (historyIndex < history.length - 1) {
+            history = history.slice(0, historyIndex + 1);
+        }
+        history.push(content);
+        historyIndex = history.length - 1;
+        updateUndoRedoButtons();
     }
 
     function renderNotesList() {
@@ -157,6 +175,29 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             renderNotesList(); // Just re-render the list
         }
+    }
+
+    function undo() {
+        if (historyIndex > 0) {
+            historyIndex--;
+            finalTranscriptEl.innerHTML = history[historyIndex];
+            updateUndoRedoButtons();
+        }
+    }
+
+    function redo() {
+        if (historyIndex < history.length - 1) {
+            historyIndex++;
+            finalTranscriptEl.innerHTML = history[historyIndex];
+            updateUndoRedoButtons();
+        }
+    }
+
+    function updateUndoRedoButtons() {
+        const undoBtn = document.getElementById('undo-btn');
+        const redoBtn = document.getElementById('redo-btn');
+        if (undoBtn) undoBtn.disabled = historyIndex <= 0;
+        if (redoBtn) redoBtn.disabled = historyIndex >= history.length - 1;
     }
 
     function renderTags(tags) {
@@ -533,6 +574,12 @@ ${summaryContent}`;
         }
     });
 
+    const undoBtn = document.getElementById('undo-btn');
+    const redoBtn = document.getElementById('redo-btn');
+
+    if (undoBtn) undoBtn.addEventListener('click', undo);
+    if (redoBtn) redoBtn.addEventListener('click', redo);
+
     // --- Post-recording Actions ---
     summarizeBtn.addEventListener('click', async () => {
         await generateSummary();
@@ -599,6 +646,7 @@ ${summaryContent}`;
     // --- Initial Load ---
     loadSettings();
     loadNotes(); // Load all notes
+    updateUndoRedoButtons(); // Initialize undo/redo button states
     // Remove auth check
     recordBtn.disabled = false;
     statusMessage.textContent = '버튼을 눌러 녹음을 시작하세요';
