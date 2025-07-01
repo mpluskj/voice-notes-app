@@ -138,9 +138,11 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUndoRedoButtons();
     }
 
-    function renderNotesList() {
+    function renderNotesList(filterTag = null) { // Added filterTag parameter
         notesListEl.innerHTML = '';
-        notes.forEach(note => {
+        const notesToRender = filterTag ? notes.filter(note => note.tags.includes(filterTag)) : notes;
+
+        notesToRender.forEach(note => {
             const noteItem = document.createElement('div');
             noteItem.classList.add('note-item');
             if (note.id === currentNoteId) {
@@ -234,11 +236,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const searchTerm = searchInput.value.trim();
         if (!searchTerm) {
             // If search term is empty, restore original transcript
-            finalTranscriptEl.innerHTML = localStorage.getItem('finalTranscript') || '';
+            loadNote(currentNoteId); // Reload current note to clear highlight
             return;
         }
 
-        const originalContent = localStorage.getItem('finalTranscript') || '';
+        const currentNote = notes.find(n => n.id === currentNoteId);
+        if (!currentNote) return;
+
+        const originalContent = currentNote.transcript;
         let highlightedContent = originalContent;
 
         // Create a regex for the search term, case-insensitive
@@ -308,7 +313,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const timestamp = (Date.now() - audioStartTime) / 1000; // seconds
                     const timestampFormatted = new Date(timestamp * 1000).toISOString().substr(11, 8); // HH:MM:SS
                     const span = document.createElement('span');
-                    span.textContent = event.results[i][0].transcript + '\n';
+                    span.textContent = event.results[i][0].transcript + '
+';
                     span.dataset.timestamp = timestamp;
                     span.classList.add('transcript-segment');
                     span.addEventListener('click', () => {
@@ -324,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     interimTranscript += event.results[i][0].transcript;
                 }
             }
-            finalTranscriptEl.textContent = finalTranscript;
+            // finalTranscriptEl.textContent = finalTranscript; // This line is problematic
             interimTranscriptEl.textContent = interimTranscript;
         };
 
@@ -411,7 +417,8 @@ ${finalTranscriptEl.innerText}`;
 
             const data = await response.json();
             const summary = data.candidates[0].content.parts[0].text;
-            summaryOutputEl.innerHTML = summary.split('\n').join('<br>');
+            summaryOutputEl.innerHTML = summary.split('
+').join('<br>');
             statusMessage.textContent = '요약이 완료되었습니다.';
         } catch (error) {
             console.error('Error generating summary:', error);
@@ -422,7 +429,7 @@ ${finalTranscriptEl.innerText}`;
 
     function downloadToFile(format) {
         const settings = loadSettings(false);
-        const title = settings.docTitleFormat.replace('[YYYY-MM-DD]', new Date().toISOString().slice(0, 10));
+        const title = noteTitleInput.value || settings.docTitleFormat.replace('[YYYY-MM-DD]', new Date().toISOString().slice(0, 10)); // Use note title
         let content = '';
         let filename = `${title}`;
         let mimeType = 'text/plain;charset=utf-8';
@@ -770,3 +777,4 @@ ${summaryContent}`;
             renderNotesList(filteredNotes); // Render only filtered notes
         }
     });
+});
