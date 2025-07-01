@@ -31,7 +31,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- State ---
     let isRecording = false;
     let recognition = null;
-    let finalTranscript = '';
+
+    // --- Local Storage Management ---
+    function loadTranscript() {
+        const savedTranscript = localStorage.getItem('finalTranscript');
+        if (savedTranscript) {
+            finalTranscriptEl.textContent = savedTranscript;
+            postRecordingActions.style.display = 'flex'; // Show actions if there's saved content
+        }
+    }
+
+    function saveTranscript() {
+        localStorage.setItem('finalTranscript', finalTranscriptEl.textContent);
+    }
 
     // --- Real-time Transcription ---
     function startRecording() {
@@ -48,9 +60,9 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMessage.textContent = '녹음 중...';
         interimTranscriptEl.textContent = '';
         finalTranscriptEl.textContent = '';
-        finalTranscriptEl.textContent = '';
         summaryOutputEl.innerHTML = '';
         postRecordingActions.style.display = 'none';
+        saveTranscript(); // Save current (empty) state
 
         recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         recognition.lang = settings.language;
@@ -62,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 if (event.results[i].isFinal) {
                     finalTranscriptEl.textContent += event.results[i][0].transcript + '\n'; // Add newline for final transcript
+                    saveTranscript(); // Save after each final transcript update
                 } else {
                     interimTranscript += event.results[i][0].transcript;
                 }
@@ -275,6 +288,7 @@ ${summaryOutputEl.innerText}`;
         summaryOutputEl.innerHTML = '';
         statusMessage.textContent = '버튼을 눌러 녹음을 시작하세요';
         postRecordingActions.style.display = 'none';
+        saveTranscript(); // Clear saved transcript
     });
 
     loadFileBtn.addEventListener('click', () => {
@@ -295,12 +309,14 @@ ${summaryOutputEl.innerText}`;
             summaryOutputEl.innerHTML = '';
             statusMessage.textContent = '파일이 불러와졌습니다. 요약 버튼을 누르세요.';
             postRecordingActions.style.display = 'flex';
+            saveTranscript(); // Save loaded transcript
         };
         reader.readAsText(file);
     });
 
     // --- Initial Load ---
     loadSettings();
+    loadTranscript(); // Load saved transcript
     // Remove auth check
     recordBtn.disabled = false;
     statusMessage.textContent = '버튼을 눌러 녹음을 시작하세요';
