@@ -48,8 +48,8 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMessage.textContent = '녹음 중...';
         interimTranscriptEl.textContent = '';
         finalTranscriptEl.textContent = '';
+        finalTranscriptEl.textContent = '';
         summaryOutputEl.innerHTML = '';
-        finalTranscript = '';
         postRecordingActions.style.display = 'none';
 
         recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let interimTranscript = '';
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript + '\n'; // Add newline for final transcript
+                    finalTranscriptEl.textContent += event.results[i][0].transcript + '\n'; // Add newline for final transcript
                 } else {
                     interimTranscript += event.results[i][0].transcript;
                 }
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (finalTranscript.trim().length > 0) {
+        if (finalTranscriptEl.textContent.trim().length > 0) {
             statusMessage.textContent = '녹음 완료.';
             postRecordingActions.style.display = 'flex';
         } else {
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (finalTranscript.trim().length === 0) {
+        if (finalTranscriptEl.textContent.trim().length === 0) {
             summaryOutputEl.textContent = '요약할 내용이 없습니다.';
             return;
         }
@@ -158,7 +158,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function downloadToFile() {
         const settings = loadSettings(false);
         const title = settings.docTitleFormat.replace('[YYYY-MM-DD]', new Date().toISOString().slice(0, 10));
-        const content = `제목: ${title}\n\n녹음 내용:\n${finalTranscript}\n\n요약:\n${summaryOutputEl.innerText}`;
+        const content = `제목: ${title}
+
+녹음 내용:
+${finalTranscriptEl.textContent}
+
+요약:
+${summaryOutputEl.innerText}`;
         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -264,7 +270,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     discardBtn.addEventListener('click', () => {
-        finalTranscript = '';
         interimTranscriptEl.textContent = '';
         finalTranscriptEl.textContent = '';
         summaryOutputEl.innerHTML = '';
