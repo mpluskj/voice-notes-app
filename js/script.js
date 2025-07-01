@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tagsDisplay = document.getElementById('tags-display');
     const newNoteBtn = document.getElementById('new-note-btn');
     const notesListEl = document.getElementById('notes-list');
+    const ttsBtn = document.getElementById('tts-btn');
 
 
     // --- State ---
@@ -499,6 +500,18 @@ ${summaryContent}`;
         }
     }
 
+    function speakTranscript() {
+        if ('speechSynthesis' in window) {
+            const text = finalTranscriptEl.innerText;
+            const utterance = new SpeechSynthesisUtterance(text);
+            const settings = loadSettings(false);
+            utterance.lang = settings.language; // Use selected language for TTS
+            window.speechSynthesis.speak(utterance);
+        } else {
+            alert('죄송합니다. 이 브라우저에서는 텍스트 음성 변환(TTS)을 지원하지 않습니다.');
+        }
+    }
+
     // --- Settings ---
     const defaultSettings = {
         docTitleFormat: '[YYYY-MM-DD] 음성 메모',
@@ -601,11 +614,14 @@ ${summaryContent}`;
         summaryOutputEl.innerHTML = '';
         statusMessage.textContent = '버튼을 눌러 녹음을 시작하세요';
         postRecordingActions.style.display = 'none';
+        saveNote(); // Clear saved transcript
         if (audioBlobUrl) {
             URL.revokeObjectURL(audioBlobUrl);
             audioBlobUrl = null;
         }
     });
+
+    ttsBtn.addEventListener('click', speakTranscript);
 
     finalTranscriptEl.addEventListener('input', saveNote);
 
