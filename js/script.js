@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveToFileBtn = document.getElementById('save-to-file-btn');
     const discardBtn = document.getElementById('discard-btn');
 
+    const fileInput = document.getElementById('file-input');
+    const loadFileBtn = document.getElementById('load-file-btn');
+
 
     // --- State ---
     let isRecording = false;
@@ -267,6 +270,28 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryOutputEl.innerHTML = '';
         statusMessage.textContent = '버튼을 눌러 녹음을 시작하세요';
         postRecordingActions.style.display = 'none';
+    });
+
+    loadFileBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            finalTranscript = e.target.result;
+            finalTranscriptEl.textContent = finalTranscript;
+            interimTranscriptEl.textContent = '';
+            summaryOutputEl.innerHTML = '';
+            statusMessage.textContent = '파일이 불러와졌습니다. 요약 버튼을 누르세요.';
+            postRecordingActions.style.display = 'flex';
+        };
+        reader.readAsText(file);
     });
 
     // --- Initial Load ---
