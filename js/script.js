@@ -647,7 +647,8 @@ document.addEventListener('DOMContentLoaded', () => {
     recordBtn.addEventListener('click', () => {
         if (isRecording) {
             stopRecording();
-        } else {
+        }
+        else {
             startRecording();
         }
     });
