@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const newNoteBtn = document.getElementById('new-note-btn');
     const notesListEl = document.getElementById('notes-list');
     const ttsBtn = document.getElementById('tts-btn');
+    const noteTitleInput = document.getElementById('note-title-input');
 
 
     // --- State ---
@@ -88,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const note = notes.find(n => n.id === id);
         if (note) {
             currentNoteId = note.id;
+            noteTitleInput.value = note.title || '새 노트'; // Update title input
             finalTranscriptEl.innerHTML = note.transcript || '';
             summaryOutputEl.innerHTML = note.summary || '';
             renderTags(note.tags || []);
@@ -107,6 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const noteIndex = notes.findIndex(n => n.id === currentNoteId);
         if (noteIndex > -1) {
+            notes[noteIndex].title = noteTitleInput.value;
             notes[noteIndex].transcript = finalTranscriptEl.innerHTML;
             notes[noteIndex].summary = summaryOutputEl.innerHTML;
             notes[noteIndex].tags = Array.from(tagsDisplay.querySelectorAll('.tag-item')).map(tagEl => tagEl.textContent.replace(' x', ''));
@@ -624,6 +627,7 @@ ${summaryContent}`;
     ttsBtn.addEventListener('click', speakTranscript);
 
     finalTranscriptEl.addEventListener('input', saveNote);
+    noteTitleInput.addEventListener('input', saveNote);
 
     loadFileBtn.addEventListener('click', () => {
         fileInput.click();
