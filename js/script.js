@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Real-time Transcription ---
-    function startRecording() {
+    async function startRecording() {
         if (isRecording) return;
 
         const settings = loadSettings(false);
