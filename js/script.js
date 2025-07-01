@@ -629,6 +629,7 @@ ${summaryContent}`;
         const settings = loadSettings(false);
         settings.theme = newTheme;
         localStorage.setItem('voiceNotesSettings', JSON.stringify(settings));
+        themeSelect.value = newTheme; // Update the theme select in settings modal
     }
 
     // --- Event Listeners ---
@@ -755,7 +756,7 @@ ${summaryContent}`;
                 const currentTags = Array.from(tagsDisplay.querySelectorAll('.tag-item')).map(tagEl => tagEl.textContent.replace(' x', ''));
                 const newTags = [...new Set([...currentTags, ...tags])]; // Add new tags, remove duplicates
                 renderTags(newTags);
-                saveTranscript();
+                saveNote();
                 tagInput.value = '';
             }
         }
