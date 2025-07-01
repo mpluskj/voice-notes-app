@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const importAllNotesFileInput = document.getElementById('import-all-notes-file-input');
 
     const deleteAllNotesBtn = document.getElementById('delete-all-notes-btn');
+    const darkModeToggleBtn = document.getElementById('dark-mode-toggle-btn');
 
 
     // --- State ---
@@ -620,12 +621,24 @@ ${summaryContent}`;
         finalTranscriptEl.style.fontSize = `${size}px`;
     }
 
+    function toggleDarkMode() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        applyTheme(newTheme);
+        // Update settings in localStorage
+        const settings = loadSettings(false);
+        settings.theme = newTheme;
+        localStorage.setItem('voiceNotesSettings', JSON.stringify(settings));
+    }
+
     // --- Event Listeners ---
     settingsBtn.addEventListener('click', () => settingsModal.style.display = 'block');
     closeModalBtn.addEventListener('click', () => settingsModal.style.display = 'none');
     window.addEventListener('click', (event) => {
         if (event.target == settingsModal) settingsModal.style.display = 'none';
     });
+
+    darkModeToggleBtn.addEventListener('click', toggleDarkMode);
 
     saveSettingsBtn.addEventListener('click', () => {
         const newSettings = saveSettings();
