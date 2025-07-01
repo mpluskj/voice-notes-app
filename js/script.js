@@ -43,6 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const importAllNotesBtn = document.getElementById('import-all-notes-btn');
     const importAllNotesFileInput = document.getElementById('import-all-notes-file-input');
 
+    const deleteAllNotesBtn = document.getElementById('delete-all-notes-btn');
+
 
     // --- State ---
     let isRecording = false;
@@ -557,6 +559,15 @@ ${summaryContent}`;
         reader.readAsText(file);
     }
 
+    function deleteAllNotes() {
+        if (confirm('정말로 모든 노트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+            notes = [];
+            saveNotes();
+            createNote(); // Create a new empty note
+            statusMessage.textContent = '모든 노트가 삭제되었습니다.';
+        }
+    }
+
     // --- Settings ---
     const defaultSettings = {
         docTitleFormat: '[YYYY-MM-DD] 음성 메모',
@@ -631,6 +642,8 @@ ${summaryContent}`;
     });
 
     importAllNotesFileInput.addEventListener('change', importAllNotes);
+
+    deleteAllNotesBtn.addEventListener('click', deleteAllNotes);
 
     recordBtn.addEventListener('click', () => {
         if (isRecording) {
