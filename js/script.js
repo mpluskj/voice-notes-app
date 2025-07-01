@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const settingsBtn = document.getElementById('settings-btn');
@@ -126,9 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryOutputEl.textContent = '요약 중...';
 
         try {
-            const prompt = `다음 텍스트를 요약해줘. 요약 형식: ${settings.summaryFormat}
-
-${finalTranscript}`;
+            const prompt = `다음 텍스트를 요약해줘. 요약 형식: ${settings.summaryFormat}\n\n${finalTranscript}`;
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: {
@@ -146,7 +143,7 @@ ${finalTranscript}`;
 
             const data = await response.json();
             const summary = data.candidates[0].content.parts[0].text;
-            summaryOutputEl.innerHTML = summary.replace(/\n/g, '<br>');
+            summaryOutputEl.innerHTML = summary.split('\n').join('<br>');
             statusMessage.textContent = '요약이 완료되었습니다.';
         } catch (error) {
             console.error('Error generating summary:', error);
@@ -158,13 +155,7 @@ ${finalTranscript}`;
     function downloadToFile() {
         const settings = loadSettings(false);
         const title = settings.docTitleFormat.replace('[YYYY-MM-DD]', new Date().toISOString().slice(0, 10));
-        const content = `제목: ${title}
-
-녹음 내용:
-${finalTranscript}
-
-요약:
-${summaryOutputEl.innerText}`;
+        const content = `제목: ${title}\n\n녹음 내용:\n${finalTranscript}\n\n요약:\n${summaryOutputEl.innerText}`;
         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
