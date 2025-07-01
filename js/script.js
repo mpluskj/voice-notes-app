@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
             history = [note.transcript || '']; // Initialize history with current transcript
             historyIndex = 0;
             updateUndoRedoButtons();
-            console.error('Note not found:', id);
+            
         }
     }
 
@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
             removeBtn.classList.add('remove-tag');
             removeBtn.addEventListener('click', () => {
                 tagSpan.remove();
-                saveTranscript();
+                saveNote();
             });
             tagSpan.appendChild(removeBtn);
             tagsDisplay.appendChild(tagSpan);
