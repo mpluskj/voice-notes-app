@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const fileInput = document.getElementById('file-input');
     const loadFileBtn = document.getElementById('load-file-btn');
+    const exportFormatSelect = document.getElementById('export-format-select');
 
 
     // --- State ---
@@ -168,20 +169,76 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function downloadToFile() {
+    function downloadToFile(format) {
         const settings = loadSettings(false);
         const title = settings.docTitleFormat.replace('[YYYY-MM-DD]', new Date().toISOString().slice(0, 10));
-        const content = `제목: ${title}
+        let content = '';
+        let filename = `${title}`;
+        let mimeType = 'text/plain;charset=utf-8';
+
+        const transcriptContent = finalTranscriptEl.textContent;
+        const summaryContent = summaryOutputEl.innerText;
+
+        switch (format) {
+            case 'txt':
+                content = `제목: ${title}
 
 녹음 내용:
-${finalTranscriptEl.textContent}
+${transcriptContent}
 
 요약:
-${summaryOutputEl.innerText}`;
-        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+${summaryContent}`;
+                filename += '.txt';
+                break;
+            case 'md':
+                content = `# ${title}
+
+## 녹음 내용
+${transcriptContent}
+
+## 요약
+${summaryContent}`;
+                filename += '.md';
+                break;
+            case 'html':
+                content = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; }
+        h1, h2 { color: #333; }
+        pre { background-color: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>${title}</h1>
+    <h2>녹음 내용</h2>
+    <pre>${transcriptContent}</pre>
+    <h2>요약</h2>
+    <pre>${summaryContent}</pre>
+</body>
+</html>`;
+                filename += '.html';
+                mimeType = 'text/html;charset=utf-8';
+                break;
+            default:
+                content = `제목: ${title}
+
+녹음 내용:
+${transcriptContent}
+
+요약:
+${summaryContent}`;
+                filename += '.txt';
+                break;
+        }
+
+        const blob = new Blob([content], { type: mimeType });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `${title}.txt`;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -278,7 +335,8 @@ ${summaryOutputEl.innerText}`;
     });
 
     saveToFileBtn.addEventListener('click', () => {
-        downloadToFile();
+        const format = exportFormatSelect.value;
+        downloadToFile(format);
         postRecordingActions.style.display = 'none';
     });
 

@@ -36,7 +36,14 @@
 
             <div id="post-recording-actions" class="controls" style="display: none;">
                 <button id="summarize-btn" class="btn">요약</button>
-                <button id="save-to-file-btn" class="btn">파일로 저장</button>
+                <div class="export-options">
+                    <button id="save-to-file-btn" class="btn">파일로 저장</button>
+                    <select id="export-format-select">
+                        <option value="txt">TXT</option>
+                        <option value="md">Markdown</option>
+                        <option value="html">HTML</option>
+                    </select>
+                </div>
                 <button id="discard-btn" class="btn">취소/삭제</button>
             </div>
         </main>
