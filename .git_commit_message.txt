@@ -1,1 +1,0 @@
-fix: Use wss:// for WebSocket connection in frontend

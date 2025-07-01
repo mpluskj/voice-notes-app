@@ -34,7 +34,7 @@
 
             <div id="post-recording-actions" class="controls" style="display: none;">
                 <button id="summarize-btn" class="btn">요약</button>
-                <button id="save-to-google-docs-btn" class="btn">Google 문서로 저장</button>
+                <button id="save-to-file-btn" class="btn">파일로 저장</button>
                 <button id="discard-btn" class="btn">취소/삭제</button>
             </div>
         </main>
@@ -49,20 +49,7 @@
             </div>
             <div class="modal-body">
                 <div class="setting-item">
-                    <label>문서 저장 방식:</label>
-                    <div class="radio-group">
-                        <input type="radio" id="new-doc" name="doc-mode" value="new" checked>
-                        <label for="new-doc">새 문서 생성</label>
-                        <input type="radio" id="append-doc" name="doc-mode" value="append">
-                        <label for="append-doc">기존 문서에 추가</label>
-                    </div>
-                </div>
-                <div class="setting-item">
-                    <label for="doc-id-input">문서 ID (기존 문서에 추가 시):</label>
-                    <input type="text" id="doc-id-input" placeholder="Google 문서 ID" disabled>
-                </div>
-                <div class="setting-item">
-                    <label for="doc-title-format">새 문서 제목 형식:</label>
+                    <label for="doc-title-format">파일 제목 형식:</label>
                     <input type="text" id="doc-title-format" value="[YYYY-MM-DD] 음성 메모">
                 </div>
                 <div class="setting-item">
@@ -98,34 +85,6 @@
             </div>
             <div class="modal-footer">
                 <button id="save-settings-btn" class="btn">저장</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Document Selection Modal -->
-    <div id="doc-selection-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>문서 선택</h2>
-                <button id="close-doc-selection-modal-btn" class="icon-btn"><i class="material-icons">close</i></button>
-            </div>
-            <div class="modal-body">
-                <div class="setting-item">
-                    <label>어떻게 저장하시겠습니까?</label>
-                    <div class="radio-group">
-                        <input type="radio" id="new-doc-popup" name="doc-mode-popup" value="new" checked>
-                        <label for="new-doc-popup">새 문서 생성</label>
-                        <input type="radio" id="append-doc-popup" name="doc-mode-popup" value="append">
-                        <label for="append-doc-popup">기존 문서에 추가</label>
-                    </div>
-                </div>
-                <div class="setting-item">
-                    <label for="doc-id-input-popup">문서 ID (기존 문서에 추가 시):</label>
-                    <input type="text" id="doc-id-input-popup" placeholder="Google 문서 ID" disabled>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="start-recording-from-popup-btn" class="btn">녹음 시작</button>
             </div>
         </div>
     </div>
