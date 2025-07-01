@@ -146,8 +146,7 @@ ${finalTranscript}`;
 
             const data = await response.json();
             const summary = data.candidates[0].content.parts[0].text;
-            summaryOutputEl.innerHTML = summary.replace(/
-/g, '<br>');
+            summaryOutputEl.innerHTML = summary.replace(/\n/g, '<br>');
             statusMessage.textContent = '요약이 완료되었습니다.';
         } catch (error) {
             console.error('Error generating summary:', error);
