@@ -107,7 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
             history = [note.transcript || '']; // Initialize history with current transcript
             historyIndex = 0;
             updateUndoRedoButtons();
-            
         }
     }
 
@@ -185,7 +184,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 createNote();
             }
-        } else {
+        }
+        else {
             renderNotesList(); // Just re-render the list
         }
     }
@@ -313,8 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const timestamp = (Date.now() - audioStartTime) / 1000; // seconds
                     const timestampFormatted = new Date(timestamp * 1000).toISOString().substr(11, 8); // HH:MM:SS
                     const span = document.createElement('span');
-                    span.textContent = event.results[i][0].transcript + '
-';
+                    span.textContent = event.results[i][0].transcript + '\n';
                     span.dataset.timestamp = timestamp;
                     span.classList.add('transcript-segment');
                     span.addEventListener('click', () => {
@@ -397,9 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryOutputEl.textContent = '요약 중...';
 
         try {
-            const prompt = `다음 텍스트를 요약해줘. 요약 형식: ${settings.summaryFormat}
-
-${finalTranscriptEl.innerText}`;
+            const prompt = `다음 텍스트를 요약해줘. 요약 형식: ${settings.summaryFormat}\n\n${finalTranscriptEl.innerText}`;
             const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: {
@@ -417,8 +414,7 @@ ${finalTranscriptEl.innerText}`;
 
             const data = await response.json();
             const summary = data.candidates[0].content.parts[0].text;
-            summaryOutputEl.innerHTML = summary.split('
-').join('<br>');
+            summaryOutputEl.innerHTML = summary.split('\n').join('<br>');
             statusMessage.textContent = '요약이 완료되었습니다.';
         } catch (error) {
             console.error('Error generating summary:', error);
@@ -440,58 +436,20 @@ ${finalTranscriptEl.innerText}`;
 
         switch (format) {
             case 'txt':
-                content = `제목: ${title}
-
-녹음 내용:
-${transcriptContent}
-
-요약:
-${summaryContent}`;
+                content = `제목: ${title}\n\n녹음 내용:\n${transcriptContent}\n\n요약:\n${summaryContent}`;
                 filename += '.txt';
                 break;
             case 'md':
-                content = `# ${title}
-
-## 녹음 내용
-${transcriptContent}
-
-## 요약
-${summaryContent}`;
+                content = `# ${title}\n\n## 녹음 내용\n${transcriptContent}\n\n## 요약\n${summaryContent}`;
                 filename += '.md';
                 break;
             case 'html':
-                content = `<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <title>${title}</title>
-    <style>
-        body { font-family: sans-serif; line-height: 1.6; }
-        h1, h2 { color: #333; }
-        .transcript-segment { cursor: pointer; background-color: #e0e0e0; padding: 2px 5px; border-radius: 3px; margin-right: 5px; display: inline-block; }
-        .transcript-segment:hover { background-color: #c0c0c0; }
-        pre { background-color: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
-    </style>
-</head>
-<body>
-    <h1>${title}</h1>
-    <h2>녹음 내용</h2>
-    <div>${transcriptHtml}</div>
-    <h2>요약</h2>
-    <pre>${summaryContent}</pre>
-</body>
-</html>`;
+                content = `<!DOCTYPE html>\n<html lang="ko">\n<head>\n    <meta charset="UTF-8">\n    <title>${title}</title>\n    <style>\n        body { font-family: sans-serif; line-height: 1.6; }\n        h1, h2 { color: #333; }\n        .transcript-segment { cursor: pointer; background-color: #e0e0e0; padding: 2px 5px; border-radius: 3px; margin-right: 5px; display: inline-block; }\n        .transcript-segment:hover { background-color: #c0c0c0; }\n        pre { background-color: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }\n    </style>\n</head>\n<body>\n    <h1>${title}</h1>\n    <h2>녹음 내용</h2>\n    <div>${transcriptHtml}</div>\n    <h2>요약</h2>\n    <pre>${summaryContent}</pre>\n</body>\n</html>`;
                 filename += '.html';
                 mimeType = 'text/html;charset=utf-8';
                 break;
             default:
-                content = `제목: ${title}
-
-녹음 내용:
-${transcriptContent}
-
-요약:
-${summaryContent}`;
+                content = `제목: ${title}\n\n녹음 내용:\n${transcriptContent}\n\n요약:\n${summaryContent}`;
                 filename += '.txt';
                 break;
         }
@@ -584,7 +542,12 @@ ${summaryContent}`;
         theme: 'light',
         fontSize: 16,
         geminiApiKey: '',
-        recordAudio: false
+        recordAudio: false,
+        customColors: {
+            primary: '#6200EE',
+            background: '#F0F2F5',
+            text: '#212121'
+        }
     };
 
     function loadSettings(applyUI = true) {
@@ -600,6 +563,16 @@ ${summaryContent}`;
             geminiApiKeyInput.value = settings.geminiApiKey;
             recordAudioCheckbox.checked = settings.recordAudio;
 
+            // Apply custom colors
+            document.documentElement.style.setProperty('--primary-color', settings.customColors.primary);
+            document.documentElement.style.setProperty('--background-color', settings.customColors.background);
+            document.documentElement.style.setProperty('--text-color', settings.customColors.text);
+            
+            // Update color pickers
+            document.getElementById('primary-color-picker').value = settings.customColors.primary;
+            document.getElementById('background-color-picker').value = settings.customColors.background;
+            document.getElementById('text-color-picker').value = settings.customColors.text;
+
             applyTheme(settings.theme);
             applyFontSize(settings.fontSize);
         }
@@ -614,7 +587,12 @@ ${summaryContent}`;
             theme: themeSelect.value,
             fontSize: fontSizeSlider.value,
             geminiApiKey: geminiApiKeyInput.value,
-            recordAudio: recordAudioCheckbox.checked
+            recordAudio: recordAudioCheckbox.checked,
+            customColors: {
+                primary: document.getElementById('primary-color-picker').value,
+                background: document.getElementById('background-color-picker').value,
+                text: document.getElementById('text-color-picker').value
+            }
         };
         localStorage.setItem('voiceNotesSettings', JSON.stringify(settings));
         return settings;
@@ -650,7 +628,7 @@ ${summaryContent}`;
 
     saveSettingsBtn.addEventListener('click', () => {
         const newSettings = saveSettings();
-        applyTheme(newSettings.theme);
+        applyTheme(newSettings.theme); // Re-apply theme to update CSS variables
         applyFontSize(newSettings.fontSize);
         settingsModal.style.display = 'none';
         alert('설정이 저장되었습니다.');
