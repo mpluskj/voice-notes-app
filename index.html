@@ -9,58 +9,71 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 </head>
 <body>
-    <div class="container">
-        <header>
+    <div class="app-container">
+        <header class="app-header">
             <h1>실시간 음성 필기</h1>
-            <button id="settings-btn" class="icon-btn"><i class="material-icons">settings</i></button>
-            <button id="dark-mode-toggle-btn" class="icon-btn"><i class="material-icons">brightness_4</i></button>
+            <div class="header-actions">
+                <button id="settings-btn" class="icon-btn" title="설정"><i class="material-icons">settings</i></button>
+                <button id="dark-mode-toggle-btn" class="icon-btn" title="다크 모드 전환"><i class="material-icons">brightness_4</i></button>
+            </div>
         </header>
 
-        <main>
-            <div class="controls">
-                <button id="record-btn" class="fab-btn"><i class="material-icons">mic</i></button>
-                <p id="status-message">버튼을 눌러 녹음을 시작하세요</p>
-                <input type="file" id="file-input" accept=".txt" style="display: none;">
-                <button id="load-file-btn" class="btn">파일 불러오기</button>
-                <button id="new-note-btn" class="btn">새 노트</button>
-                <button id="undo-btn" class="btn"><i class="material-icons">undo</i></button>
-                <button id="redo-btn" class="btn"><i class="material-icons">redo</i></button>
-                <input type="text" id="search-input" placeholder="검색어를 입력하세요">
-                <button id="search-btn" class="btn">검색</button>
-            </div>
-
-            <div class="transcription-container card">
-                <input type="text" id="note-title-input" placeholder="노트 제목" class="note-title-input">
-                <h2>실시간 필기</h2>
-                <div id="interim-transcript"></div>
-                <div id="final-transcript" contenteditable="true"></div>
-            </div>
-
-            <div class="summary-container card">
-                <h2>요약</h2>
-                <div id="summary-output"></div>
-            </div>
-
-            <div id="post-recording-actions" class="controls" style="display: none;">
-                <button id="summarize-btn" class="btn">요약</button>
-                <div class="export-options">
-                    <button id="save-to-file-btn" class="btn">파일로 저장</button>
-                    <select id="export-format-select">
-                        <option value="txt">TXT</option>
-                        <option value="md">Markdown</option>
-                        <option value="html">HTML</option>
-                    </select>
+        <div class="app-body">
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>내 노트</h2>
+                    <button id="new-note-btn" class="btn">새 노트</button>
                 </div>
-                <button id="discard-btn" class="btn">취소/삭제</button>
-                <button id="tts-btn" class="btn"><i class="material-icons">volume_up</i></button>
-            </div>
+                <div id="notes-list">
+                    <!-- 노트 목록이 여기에 동적으로 추가됩니다. -->
+                </div>
+            </aside>
 
-            <div class="tag-input-container card">
-                <h2>태그</h2>
-                <input type="text" id="tag-input" placeholder="태그를 입력하세요 (쉼표로 구분)">
-                <div id="tags-display"></div>
-            </div>
-        </main>
+            <main class="main-content">
+                <div class="controls">
+                    <button id="record-btn" class="fab-btn" title="녹음/정지"><i class="material-icons">mic</i></button>
+                    <p id="status-message">버튼을 눌러 녹음을 시작하세요</p>
+                    <input type="file" id="file-input" accept=".txt" style="display: none;">
+                    <button id="load-file-btn" class="btn">파일 불러오기</button>
+                    <button id="undo-btn" class="btn" title="실행 취소"><i class="material-icons">undo</i></button>
+                    <button id="redo-btn" class="btn" title="다시 실행"><i class="material-icons">redo</i></button>
+                    <input type="text" id="search-input" placeholder="노트 내 검색...">
+                    <button id="search-btn" class="btn">검색</button>
+                </div>
+
+                <div class="transcription-container card">
+                    <input type="text" id="note-title-input" placeholder="노트 제목" class="note-title-input">
+                    <h2>실시간 필기</h2>
+                    <div id="interim-transcript"></div>
+                    <div id="final-transcript" contenteditable="true"></div>
+                </div>
+
+                <div class="summary-container card">
+                    <h2>요약</h2>
+                    <div id="summary-output"></div>
+                </div>
+
+                <div id="post-recording-actions" class="controls" style="display: none;">
+                    <button id="summarize-btn" class="btn">요약</button>
+                    <div class="export-options">
+                        <button id="save-to-file-btn" class="btn">파일로 저장</button>
+                        <select id="export-format-select">
+                            <option value="txt">TXT</option>
+                            <option value="md">Markdown</option>
+                            <option value="html">HTML</option>
+                        </select>
+                    </div>
+                    <button id="discard-btn" class="btn">취소/삭제</button>
+                    <button id="tts-btn" class="btn" title="음성으로 듣기"><i class="material-icons">volume_up</i></button>
+                </div>
+
+                <div class="tag-input-container card">
+                    <h2>태그</h2>
+                    <input type="text" id="tag-input" placeholder="태그를 입력하세요 (쉼표로 구분)">
+                    <div id="tags-display"></div>
+                </div>
+            </main>
+        </div>
     </div>
 
     <!-- Settings Modal -->
