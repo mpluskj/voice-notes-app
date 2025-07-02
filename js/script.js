@@ -45,6 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const deleteAllNotesBtn = document.getElementById('delete-all-notes-btn');
     const darkModeToggleBtn = document.getElementById('dark-mode-toggle-btn');
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+    const sidebar = document.querySelector('.sidebar');
 
 
     // --- State ---
@@ -107,6 +109,11 @@ document.addEventListener('DOMContentLoaded', () => {
             history = [note.transcript || '']; // Initialize history with current transcript
             historyIndex = 0;
             updateUndoRedoButtons();
+
+            // Close sidebar on mobile after loading a note
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('open');
+            }
         }
     }
 
@@ -636,6 +643,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     darkModeToggleBtn.addEventListener('click', toggleDarkMode);
+    sidebarToggleBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+    });
 
     saveSettingsBtn.addEventListener('click', () => {
         const newSettings = saveSettings();
