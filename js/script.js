@@ -379,6 +379,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function generateSummary() {
+        if (summaryOutputEl.innerHTML.trim().length > 0) {
+            if (!confirm('이미 요약된 내용이 있습니다. 새로 요약하시겠습니까?')) {
+                return;
+            }
+        }
+
         const settings = loadSettings(false);
         const apiKey = settings.geminiApiKey;
 
@@ -667,13 +673,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Post-recording Actions ---
     summarizeBtn.addEventListener('click', async () => {
         await generateSummary();
-        postRecordingActions.style.display = 'none';
     });
 
     saveToFileBtn.addEventListener('click', () => {
         const format = exportFormatSelect.value;
         downloadToFile(format);
-        postRecordingActions.style.display = 'none';
     });
 
     discardBtn.addEventListener('click', () => {
