@@ -560,6 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
         theme: 'light',
         fontSize: 16,
         geminiApiKey: '',
+        googleClientId: '',
         recordAudio: false,
         customColors: {
             primary: '#6200EE',
@@ -579,6 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
             themeSelect.value = settings.theme;
             fontSizeSlider.value = settings.fontSize;
             geminiApiKeyInput.value = settings.geminiApiKey;
+            document.getElementById('google-client-id').value = settings.googleClientId;
             recordAudioCheckbox.checked = settings.recordAudio;
 
             // Apply custom colors
@@ -605,6 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
             theme: themeSelect.value,
             fontSize: fontSizeSlider.value,
             geminiApiKey: geminiApiKeyInput.value,
+            googleClientId: document.getElementById('google-client-id').value,
             recordAudio: recordAudioCheckbox.checked,
             customColors: {
                 primary: document.getElementById('primary-color-picker').value,
@@ -670,6 +673,12 @@ document.addEventListener('DOMContentLoaded', () => {
     importAllNotesFileInput.addEventListener('change', importAllNotes);
 
     deleteAllNotesBtn.addEventListener('click', deleteAllNotes);
+
+    const exportGoogleDriveBtn = document.getElementById('export-google-drive-btn');
+    const importGoogleDriveBtn = document.getElementById('import-google-drive-btn');
+
+    if (exportGoogleDriveBtn) exportGoogleDriveBtn.addEventListener('click', exportNotesToGoogleDrive);
+    if (importGoogleDriveBtn) importGoogleDriveBtn.addEventListener('click', importNotesFromGoogleDrive);
 
     recordBtn.addEventListener('click', () => {
         if (isRecording) {
@@ -782,3 +791,134 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// Google API related functions
+let tokenClient;
+let gapiInited = false;
+let gisInited = false;
+
+function gapiLoaded() {
+    gapi.load('client', initializeGapiClient);
+}
+
+function gisLoaded() {
+    const settings = loadSettings(false);
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: settings.googleClientId,
+        scope: 'https://www.googleapis.com/auth/drive.file',
+        callback: '',
+    });
+    gisInited = true;
+}
+
+async function initializeGapiClient() {
+    await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
+    gapiInited = true;
+}
+
+function handleAuthClick() {
+    tokenClient.callback = async (resp) => {
+        if (resp.error) {
+            throw (resp);
+        }
+        // Authorization successful, now you can make API calls
+    };
+
+    if (gapi.client.getToken() === null) {
+        // No token, initiate authorization
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+    } else {
+        // Already authorized, can refresh token or make calls directly
+        tokenClient.requestAccessToken({ prompt: 'none' });
+    }
+}
+
+async function exportNotesToGoogleDrive() {
+    const settings = loadSettings(false);
+    if (!settings.googleClientId) {
+        alert('Google Client ID를 설정에서 입력해주세요.');
+        return;
+    }
+
+    if (!gapiInited || !gisInited) {
+        alert('Google API 클라이언트가 초기화되지 않았습니다. 잠시 후 다시 시도해주세요.');
+        return;
+    }
+
+    await handleAuthClick();
+
+    try {
+        const notesData = JSON.stringify(notes, null, 2);
+        const fileMetadata = {
+            'name': 'voice_notes_backup.json',
+            'mimeType': 'application/json',
+        };
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+        form.append('file', new Blob([notesData], { type: 'application/json' }));
+
+        const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+            method: 'POST',
+            headers: new Headers({'Authorization': 'Bearer ' + gapi.client.getToken().access_token}),
+            body: form,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error.message || 'Google Drive 업로드 실패');
+        }
+
+        statusMessage.textContent = '노트가 Google Drive에 성공적으로 내보내졌습니다.';
+    } catch (error) {
+        console.error('Error exporting to Google Drive:', error);
+        statusMessage.textContent = `Google Drive 내보내기 실패: ${error.message}`;
+    }
+}
+
+async function importNotesFromGoogleDrive() {
+    const settings = loadSettings(false);
+    if (!settings.googleClientId) {
+        alert('Google Client ID를 설정에서 입력해주세요.');
+        return;
+    }
+
+    if (!gapiInited || !gisInited) {
+        alert('Google API 클라이언트가 초기화되지 않았습니다. 잠시 후 다시 시도해주세요.');
+        return;
+    }
+
+    await handleAuthClick();
+
+    try {
+        const response = await gapi.client.drive.files.list({
+            'q': "name = 'voice_notes_backup.json' and mimeType = 'application/json'",
+            'spaces': 'drive',
+            'fields': 'files(id, name)'
+        });
+
+        const files = response.result.files;
+        if (files.length === 0) {
+            statusMessage.textContent = 'Google Drive에서 백업 파일을 찾을 수 없습니다.';
+            return;
+        }
+
+        const fileId = files[0].id;
+        const fileContentResponse = await gapi.client.drive.files.get({
+            fileId: fileId,
+            alt: 'media'
+        });
+
+        const importedNotes = JSON.parse(fileContentResponse.body);
+        if (Array.isArray(importedNotes)) {
+            notes = importedNotes; // Overwrite existing notes
+            saveNotes();
+            loadNotes(); // Reload UI with imported notes
+            statusMessage.textContent = '노트가 Google Drive에서 성공적으로 불러와졌습니다.';
+        } else {
+            alert('유효하지 않은 JSON 파일 형식입니다.');
+        }
+    } catch (error) {
+        console.error('Error importing from Google Drive:', error);
+        statusMessage.textContent = `Google Drive 불러오기 실패: ${error.message}`;
+    }
+}
