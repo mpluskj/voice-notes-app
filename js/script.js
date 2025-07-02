@@ -397,7 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const prompt = `다음 텍스트를 요약해줘. 요약 형식: ${settings.summaryFormat}\n\n${finalTranscriptEl.innerText}`;
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -413,9 +413,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const data = await response.json();
-            const summary = data.candidates[0].content.parts[0].text;
-            summaryOutputEl.innerHTML = summary.split('\n').join('<br>');
-            statusMessage.textContent = '요약이 완료되었습니다.';
+            if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
+                const summary = data.candidates[0].content.parts[0].text;
+                summaryOutputEl.innerHTML = summary.split('\n').join('<br>');
+                statusMessage.textContent = '요약이 완료되었습니다.';
+            } else {
+                throw new Error('API 응답에서 요약 내용을 찾을 수 없습니다.');
+            }
         } catch (error) {
             console.error('Error generating summary:', error);
             summaryOutputEl.textContent = `요약 실패: ${error.message}`;
