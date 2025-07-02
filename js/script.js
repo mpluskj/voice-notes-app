@@ -640,6 +640,12 @@ document.addEventListener('DOMContentLoaded', () => {
     closeModalBtn.addEventListener('click', () => settingsModal.style.display = 'none');
     window.addEventListener('click', (event) => {
         if (event.target == settingsModal) settingsModal.style.display = 'none';
+
+        // Close sidebar if clicked outside and sidebar is open on mobile
+        if (window.innerWidth <= 768 && sidebar.classList.contains('open') &&
+            !sidebar.contains(event.target) && event.target !== sidebarToggleBtn) {
+            sidebar.classList.remove('open');
+        }
     });
 
     darkModeToggleBtn.addEventListener('click', toggleDarkMode);
