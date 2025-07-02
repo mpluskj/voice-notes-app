@@ -412,7 +412,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorData.error.message || 'Gemini API 호출 실패');
             }
 
-            const data = await response.json();            if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {                const summary = data.candidates[0].content.parts[0].text;                summaryOutputEl.innerHTML = summary.split('\n').join('<br>');                statusMessage.textContent = '요약이 완료되었습니다.';                saveNote(); // Save the note with the new summary            } else {                throw new Error('API 응답에서 요약 내용을 찾을 수 없습니다.');            }
+            const data = await response.json();
+            if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
+                const summary = data.candidates[0].content.parts[0].text;
+                summaryOutputEl.innerHTML = summary.split('\n').join('<br>');
+                statusMessage.textContent = '요약이 완료되었습니다.';
+                saveNote(); // Save the note with the new summary
+            } else {
+                throw new Error('API 응답에서 요약 내용을 찾을 수 없습니다.');
+            }
         } catch (error) {
             console.error('Error generating summary:', error);
             summaryOutputEl.textContent = `요약 실패: ${error.message}`;
