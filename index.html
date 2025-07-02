@@ -132,10 +132,6 @@
                     <input type="password" id="gemini-api-key">
                 </div>
                 <div class="setting-item">
-                    <label for="google-client-id">Google Client ID:</label>
-                    <input type="text" id="google-client-id">
-                </div>
-                <div class="setting-item">
                     <label for="record-audio-checkbox">오디오 기록:</label>
                     <input type="checkbox" id="record-audio-checkbox">
                 </div>
@@ -147,14 +143,10 @@
                     <button id="import-all-notes-btn" class="btn">모든 노트 불러오기 (파일)</button>
                 </div>
                 <div class="setting-item">
-                    <button id="export-google-drive-btn" class="btn">Google Drive로 내보내기</button>
+                    <button id="export-google-drive-btn" class="btn">Google Drive로 공유</button>
                 </div>
                 <div class="setting-item">
-                    <button id="import-google-drive-btn" class="btn">Google Drive에서 불러오기</button>
-                </div>
-                <div class="setting-item">
-                    <button id="delete-all-notes-btn" class="btn">모든 노트 삭제</button>
-                </div>
+                    <button id="delete-all-notes-btn" class="btn">모든 노트 삭제</n>
             </div>
             <div class="modal-footer">
                 <button id="save-settings-btn" class="btn">저장</button>
@@ -163,7 +155,5 @@
     </div>
 
     <script src="js/script.js"></script>
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
 </html>
