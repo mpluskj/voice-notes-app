@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let history = []; // Stores snapshots of the transcript for undo/redo
     let historyIndex = -1; // Current position in the history array
     let lastProcessedResultIndex = 0; // New: To track the last processed result index for final results
+    let silenceTimeoutId = null; // Moved: To manage silence timeout
 
     // --- Local Storage Management ---
     function loadData() {
@@ -473,8 +474,6 @@ document.addEventListener('DOMContentLoaded', () => {
         recognition.lang = settings.language;
         recognition.interimResults = true;
         recognition.continuous = true;
-
-        let silenceTimeoutId; // To manage silence timeout
 
         recognition.onresult = (event) => {
             let interimTranscript = '';
