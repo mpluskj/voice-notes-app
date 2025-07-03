@@ -25,6 +25,17 @@
                     <h2>내 노트</h2>
                     <button id="new-note-btn" class="btn">새 노트</button>
                 </div>
+                <!-- New: Note Search Input -->
+                <input type="text" id="note-search-input" placeholder="노트 검색...">
+                <div class="folder-management">
+                    <h3>폴더</h3>
+                    <button id="add-folder-btn" class="btn">새 폴더</button>
+                    <ul id="folders-list"></ul>
+                </div>
+                <div class="tag-filter-management">
+                    <h3>태그 필터</h3>
+                    <ul id="tags-filter-list"></ul>
+                </div>
                 <div id="notes-list">
                     <!-- 노트 목록이 여기에 동적으로 추가됩니다. -->
                 </div>
@@ -34,17 +45,24 @@
                 <div class="controls">
                     <button id="record-btn" class="fab-btn" title="녹음/정지"><i class="material-icons">mic</i></button>
                     <p id="status-message">버튼을 눌러 녹음을 시작하세요</p>
-                    <input type="file" id="file-input" accept=".txt" style="display: none;">
-                    <button id="load-file-btn" class="btn">파일 불러오기</button>
-                    <button id="undo-btn" class="btn" title="실행 취소"><i class="material-icons">undo</i></button>
-                    <button id="redo-btn" class="btn" title="다시 실행"><i class="material-icons">redo</i></button>
-                    <input type="text" id="search-input" placeholder="노트 내 검색...">
-                    <button id="search-btn" class="btn">검색</button>
+                    <!-- Removed: file-input, load-file-btn, audio-file-input, upload-audio-btn, undo-btn, redo-btn, search-input, search-btn -->
                 </div>
 
                 <div class="transcription-container card">
                     <input type="text" id="note-title-input" placeholder="노트 제목" class="note-title-input">
-                    <h2>실시간 필기</h2>
+                    <div class="transcript-header"> <!-- New: Header for transcription content -->
+                        <h2>필기 내용</h2> <!-- Changed text -->
+                        <div class="action-icons"> <!-- New: Container for action icons -->
+                            <input type="file" id="file-input" accept=".txt" style="display: none;">
+                            <button id="load-file-icon-btn" class="icon-btn" title="파일 불러오기"><i class="material-icons">upload_file</i></button>
+                            <input type="file" id="audio-file-input" accept="audio/*" style="display: none;">
+                            <button id="upload-audio-icon-btn" class="icon-btn" title="오디오 파일 업로드"><i class="material-icons">audiotrack</i></button>
+                            <button id="undo-icon-btn" class="icon-btn" title="실행 취소"><i class="material-icons">undo</i></button>
+                            <button id="redo-icon-btn" class="icon-btn" title="다시 실행"><i class="material-icons">redo</i></button>
+                            <input type="text" id="search-input" placeholder="필기 내용 검색..." class="icon-input"> <!-- Changed placeholder and added class -->
+                            <button id="search-icon-btn" class="icon-btn" title="검색"><i class="material-icons">search</i></button>
+                        </div>
+                    </div>
                     <div id="interim-transcript"></div>
                     <div id="final-transcript" contenteditable="true"></div>
                 </div>
@@ -58,6 +76,7 @@
                     <button id="summarize-btn" class="btn">요약</button>
                     <div class="export-options">
                         <button id="save-to-file-btn" class="btn">파일로 저장</button>
+                    <button id="download-audio-btn" class="btn" style="display: none;">오디오 다운로드</button>
                         <select id="export-format-select">
                             <option value="txt">TXT</option>
                             <option value="md">Markdown</option>
@@ -134,6 +153,10 @@
                 <div class="setting-item">
                     <label for="record-audio-checkbox">오디오 기록:</label>
                     <input type="checkbox" id="record-audio-checkbox">
+                </div>
+                <div class="setting-item">
+                    <label for="silence-timeout">무음 감지 시간 (초):</label>
+                    <input type="number" id="silence-timeout" value="30" min="5" max="300">
                 </div>
                 <div class="setting-item">
                     <button id="export-all-notes-btn" class="btn">모든 노트 내보내기 (파일)</button>

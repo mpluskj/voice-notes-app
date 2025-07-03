@@ -23,14 +23,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const postRecordingActions = document.getElementById('post-recording-actions');
     const summarizeBtn = document.getElementById('summarize-btn');
     const saveToFileBtn = document.getElementById('save-to-file-btn');
+    const downloadAudioBtn = document.getElementById('download-audio-btn'); // Added
     const discardBtn = document.getElementById('discard-btn');
 
     const fileInput = document.getElementById('file-input');
-    const loadFileBtn = document.getElementById('load-file-btn');
+    const loadFileBtn = document.getElementById('load-file-icon-btn'); // Changed ID
+    const audioFileInput = document.getElementById('audio-file-input');
+    const uploadAudioBtn = document.getElementById('upload-audio-icon-btn'); // Changed ID
+    const audioPlayer = document.getElementById('audio-player');
     const exportFormatSelect = document.getElementById('export-format-select');
 
-    const searchInput = document.getElementById('search-input');
-    const searchBtn = document.getElementById('search-btn');
+    const searchInput = document.getElementById('search-input'); // This is now the content search input
+    const searchBtn = document.getElementById('search-icon-btn'); // Changed ID
+
+    const noteSearchInput = document.getElementById('note-search-input'); // New: Note list search input
 
     const tagInput = document.getElementById('tag-input');
     const tagsDisplay = document.getElementById('tags-display');
@@ -57,13 +63,25 @@ document.addEventListener('DOMContentLoaded', () => {
     let audioBlobUrl = null;
     let audioStartTime = 0;
     let notes = []; // Array to store all notes
+    let folders = []; // Array to store folders
     let currentNoteId = null; // ID of the currently active note
+    let currentFolderId = null; // ID of the currently active folder
+    let currentTagFilter = null; // New: ID of the currently active tag filter
     let history = []; // Stores snapshots of the transcript for undo/redo
     let historyIndex = -1; // Current position in the history array
+    let lastProcessedResultIndex = 0; // New: To track the last processed result index for final results
 
     // --- Local Storage Management ---
-    function loadNotes() {
+    function loadData() {
         notes = JSON.parse(localStorage.getItem('voiceNotes')) || [];
+        folders = JSON.parse(localStorage.getItem('voiceFolders')) || [];
+        if (folders.length === 0) {
+            // Create a default "All Notes" folder if none exist
+            folders.push({ id: 'all', name: '모든 노트' });
+            saveData();
+        }
+        renderFoldersList();
+        renderTagsList(); // New: Render tags list on data load
         renderNotesList();
         if (notes.length > 0) {
             loadNote(notes[0].id); // Load the first note by default
@@ -72,8 +90,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function saveNotes() {
+    function saveData() {
         localStorage.setItem('voiceNotes', JSON.stringify(notes));
+        localStorage.setItem('voiceFolders', JSON.stringify(folders));
     }
 
     function createNote() {
@@ -84,11 +103,13 @@ document.addEventListener('DOMContentLoaded', () => {
             summary: '',
             tags: [],
             audioBlobUrl: null,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            folderId: currentFolderId || 'all' // Assign to current folder or 'all'
         };
         notes.unshift(newNote); // Add to the beginning
-        saveNotes();
+        saveData();
         loadNote(newNote.id);
+        renderTagsList(); // Update tags list
         history = ['']; // Initialize history for new note
         historyIndex = 0;
         updateUndoRedoButtons();
@@ -98,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const note = notes.find(n => n.id === id);
         if (note) {
             currentNoteId = note.id;
+            currentFolderId = note.folderId; // Update current folder when loading note
             noteTitleInput.value = note.title || '새 노트'; // Update title input
             finalTranscriptEl.innerHTML = note.transcript || '';
             summaryOutputEl.innerHTML = note.summary || '';
@@ -106,6 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
             postRecordingActions.style.display = 'flex';
             statusMessage.textContent = '노트가 불러와졌습니다.';
             renderNotesList(); // Update active state in list
+            renderFoldersList(); // Update active folder state
             history = [note.transcript || '']; // Initialize history with current transcript
             historyIndex = 0;
             updateUndoRedoButtons();
@@ -128,8 +151,10 @@ document.addEventListener('DOMContentLoaded', () => {
             notes[noteIndex].tags = Array.from(tagsDisplay.querySelectorAll('.tag-item')).map(tagEl => tagEl.textContent.replace(' x', ''));
             notes[noteIndex].audioBlobUrl = audioBlobUrl;
             notes[noteIndex].timestamp = new Date().toISOString(); // Update timestamp on save
-            saveNotes();
+            notes[noteIndex].folderId = currentFolderId || 'all'; // Ensure folderId is saved
+            saveData();
             renderNotesList(); // Update list to reflect changes
+            renderTagsList(); // Update tags list
             addHistoryEntry(finalTranscriptEl.innerHTML); // Add to undo history
         }
     }
@@ -146,7 +171,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderNotesList(filterTag = null) { // Added filterTag parameter
         notesListEl.innerHTML = '';
-        const notesToRender = filterTag ? notes.filter(note => note.tags.includes(filterTag)) : notes;
+        let notesToRender = notes;
+
+        // Apply note search filter
+        const noteSearchTerm = noteSearchInput.value.toLowerCase();
+        if (noteSearchTerm) {
+            notesToRender = notesToRender.filter(note => 
+                note.title.toLowerCase().includes(noteSearchTerm) ||
+                note.transcript.toLowerCase().includes(noteSearchTerm)
+            );
+        }
+
+        // Filter by folder first
+        if (currentFolderId && currentFolderId !== 'all') {
+            notesToRender = notesToRender.filter(note => note.folderId === currentFolderId);
+        }
+
+        // Then filter by tag if provided
+        if (filterTag) {
+            notesToRender = notesToRender.filter(note => note.tags.includes(filterTag));
+        } else if (currentTagFilter) { // Apply global tag filter if no specific filterTag is provided
+            notesToRender = notesToRender.filter(note => note.tags.includes(currentTagFilter));
+        }
 
         notesToRender.forEach(note => {
             const noteItem = document.createElement('div');
@@ -183,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function deleteNote(id) {
         notes = notes.filter(note => note.id !== id);
-        saveNotes();
+        saveData();
         if (currentNoteId === id) {
             // If deleted note was active, create a new one or load another
             if (notes.length > 0) {
@@ -194,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         else {
             renderNotesList(); // Just re-render the list
+            renderTagsList(); // Update tags list
         }
     }
 
@@ -238,6 +285,119 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Tag Filter Management ---
+    const tagsFilterListEl = document.getElementById('tags-filter-list');
+
+    function renderTagsList() {
+        tagsFilterListEl.innerHTML = '';
+        const allTags = new Set();
+        notes.forEach(note => {
+            note.tags.forEach(tag => allTags.add(tag));
+        });
+
+        // Add 'All Tags' filter option
+        const allTagsItem = document.createElement('li');
+        allTagsItem.classList.add('tag-filter-item');
+        if (currentTagFilter === null) {
+            allTagsItem.classList.add('active');
+        }
+        allTagsItem.textContent = '모든 태그';
+        allTagsItem.addEventListener('click', () => {
+            currentTagFilter = null;
+            renderTagsList();
+            renderNotesList();
+        });
+        tagsFilterListEl.appendChild(allTagsItem);
+
+        Array.from(allTags).sort().forEach(tag => {
+            const tagItem = document.createElement('li');
+            tagItem.classList.add('tag-filter-item');
+            if (currentTagFilter === tag) {
+                tagItem.classList.add('active');
+            }
+            tagItem.textContent = tag;
+            tagItem.addEventListener('click', () => {
+                currentTagFilter = tag;
+                renderTagsList();
+                renderNotesList();
+            });
+            tagsFilterListEl.appendChild(tagItem);
+        });
+    }
+
+    // --- Folder Management ---
+    const foldersListEl = document.getElementById('folders-list');
+    const addFolderBtn = document.getElementById('add-folder-btn');
+
+    function renderFoldersList() {
+        foldersListEl.innerHTML = '';
+        folders.forEach(folder => {
+            const folderItem = document.createElement('li');
+            folderItem.classList.add('folder-item');
+            if (folder.id === currentFolderId) {
+                folderItem.classList.add('active');
+            }
+            folderItem.dataset.folderId = folder.id;
+            folderItem.innerHTML = `
+                <span class="folder-name">${folder.name}</span>
+                ${folder.id !== 'all' ? `<button class="delete-folder-btn" data-id="${folder.id}">x</button>` : ''}
+            `;
+            folderItem.addEventListener('click', (event) => {
+                if (!event.target.classList.contains('delete-folder-btn')) {
+                    currentFolderId = folder.id;
+                    renderFoldersList();
+                    renderNotesList();
+                }
+            });
+            foldersListEl.appendChild(folderItem);
+        });
+
+        // Add event listeners for delete folder buttons
+        foldersListEl.querySelectorAll('.delete-folder-btn').forEach(btn => {
+            btn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const folderIdToDelete = event.target.dataset.id;
+                if (confirm('정말로 이 폴더와 안에 있는 모든 노트를 삭제하시겠습니까?')) {
+                    deleteFolder(folderIdToDelete);
+                }
+            });
+        });
+    }
+
+    function createFolder() {
+        const folderName = prompt('새 폴더 이름을 입력하세요:');
+        if (folderName && folderName.trim() !== '') {
+            const newFolder = {
+                id: Date.now().toString(),
+                name: folderName.trim()
+            };
+            folders.push(newFolder);
+            saveData();
+            renderFoldersList();
+        }
+    }
+
+    function deleteFolder(id) {
+        // Move notes in this folder to 'all' folder or delete them
+        notes = notes.map(note => {
+            if (note.folderId === id) {
+                // Option 1: Move to 'all' folder
+                note.folderId = 'all';
+                // Option 2: Delete notes in this folder (uncomment below and comment above)
+                // return null;
+            }
+            return note;
+        }).filter(note => note !== null);
+
+        folders = folders.filter(folder => folder.id !== id);
+        saveData();
+        if (currentFolderId === id) {
+            currentFolderId = 'all'; // Switch to 'all' folder if current folder is deleted
+        }
+        renderFoldersList();
+        renderNotesList();
+    }
+
     // --- Search Functionality ---
     function searchTranscript() {
         const searchTerm = searchInput.value.trim();
@@ -266,6 +426,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function startRecording() {
         if (isRecording) return;
 
+        clearTimeout(silenceTimeoutId); // Clear any existing silence timeout
+
         const settings = loadSettings(false);
         if (!settings.geminiApiKey) {
             alert('Gemini API 키를 설정에서 입력해주세요.');
@@ -273,10 +435,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         isRecording = true;
+        lastProcessedResultIndex = 0; // Reset on new recording session
         updateRecordButton();
         statusMessage.textContent = '녹음 중...';
-        interimTranscriptEl.textContent = '';
-        finalTranscriptEl.textContent = '';
         summaryOutputEl.innerHTML = '';
         postRecordingActions.style.display = 'none';
         saveNote(); // Save current (empty) state
@@ -313,14 +474,40 @@ document.addEventListener('DOMContentLoaded', () => {
         recognition.interimResults = true;
         recognition.continuous = true;
 
+        let silenceTimeoutId; // To manage silence timeout
+
         recognition.onresult = (event) => {
             let interimTranscript = '';
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 if (event.results[i].isFinal) {
+                    // Only process new final results
+                    if (i < lastProcessedResultIndex) {
+                        continue;
+                    }
+                    lastProcessedResultIndex = i + 1; // Update the last processed index
+
+                    const transcript = event.results[i][0].transcript.trim();
+
+                    // Check for duplication before appending
+                    const currentFinalText = finalTranscriptEl.textContent.trim().replace(/\n/g, '');
+
+                    // Check for duplication before appending
+                    if (currentFinalText.endsWith(transcript) || currentFinalText.endsWith(transcript + '.')) {
+                        // This transcript is already part of the final text, skip it
+                        continue;
+                    }
+
                     const timestamp = (Date.now() - audioStartTime) / 1000; // seconds
-                    const timestampFormatted = new Date(timestamp * 1000).toISOString().substr(11, 8); // HH:MM:SS
+                    // Add period if not already present and not an empty string
+                    const textToAdd = transcript + (transcript.endsWith('.') || transcript.endsWith('!') || transcript.endsWith('?') || transcript.length === 0 ? '' : '.');
+
+                    // Add newline before new final segment if finalTranscriptEl is not empty
+                    if (finalTranscriptEl.innerHTML.trim().length > 0) {
+                        finalTranscriptEl.appendChild(document.createElement('br'));
+                    }
+
                     const span = document.createElement('span');
-                    span.textContent = event.results[i][0].transcript + '\n';
+                    span.textContent = textToAdd;
                     span.dataset.timestamp = timestamp;
                     span.classList.add('transcript-segment');
                     span.addEventListener('click', () => {
@@ -332,15 +519,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     finalTranscriptEl.appendChild(span);
                     saveNote(); // Save after each final transcript update
+
+                    // Reset silence timeout on final result
+                    clearTimeout(silenceTimeoutId);
+                    silenceTimeoutId = setTimeout(() => {
+                        if (isRecording) {
+                            stopRecording();
+                        }
+                    }, settings.silenceTimeout * 1000); // Convert seconds to milliseconds
+
                 } else {
                     interimTranscript += event.results[i][0].transcript;
                 }
             }
-            // finalTranscriptEl.textContent = finalTranscript; // This line is problematic
             interimTranscriptEl.textContent = interimTranscript;
         };
 
         recognition.onend = () => {
+            clearTimeout(silenceTimeoutId); // Clear any pending silence timeout
             if (isRecording) { // Unexpected stop, try to restart
                 recognition.start(); // Attempt to restart recognition
             } else {
@@ -364,7 +560,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (recognition) {
             recognition.stop();
-            recognition = null;
         }
 
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
@@ -381,10 +576,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (finalTranscriptEl.textContent.trim().length > 0) {
             statusMessage.textContent = '녹음 완료.';
             postRecordingActions.style.display = 'flex';
+            if (audioBlobUrl) {
+                downloadAudioBtn.style.display = 'inline-block'; // Show download button if audio exists
+            } else {
+                downloadAudioBtn.style.display = 'none';
+            }
             saveNote(); // Save final transcript on stop
         } else {
             statusMessage.textContent = '녹음이 중지되었습니다. 인식된 내용이 없습니다.';
             postRecordingActions.style.display = 'none';
+            downloadAudioBtn.style.display = 'none'; // Hide download button if no audio
         }
     }
 
@@ -532,8 +733,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const importedNotes = JSON.parse(e.target.result);
                 if (Array.isArray(importedNotes)) {
                     notes = importedNotes; // Overwrite existing notes
-                    saveNotes();
-                    loadNotes(); // Reload UI with imported notes
+                    saveData();
+                    loadData(); // Reload UI with imported notes
+                    renderTagsList(); // Update tags list
                     statusMessage.textContent = '모든 노트가 성공적으로 불러와졌습니다.';
                 } else {
                     alert('유효하지 않은 JSON 파일 형식입니다.');
@@ -549,8 +751,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function deleteAllNotes() {
         if (confirm('정말로 모든 노트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
             notes = [];
-            saveNotes();
+            folders = [{ id: 'all', name: '모든 노트' }]; // Reset folders as well
+            saveData();
             createNote(); // Create a new empty note
+            renderTagsList(); // Update tags list
             statusMessage.textContent = '모든 노트가 삭제되었습니다.';
         }
     }
@@ -564,6 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fontSize: 16,
         geminiApiKey: '',
         recordAudio: false,
+        silenceTimeout: 30, // New setting: silence timeout in seconds
         customColors: {
             primary: '#6200EE',
             background: '#F0F2F5',
@@ -583,6 +788,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fontSizeSlider.value = settings.fontSize;
             geminiApiKeyInput.value = settings.geminiApiKey;
             recordAudioCheckbox.checked = settings.recordAudio;
+            document.getElementById('silence-timeout').value = settings.silenceTimeout; // Added
 
             // Apply custom colors
             document.documentElement.style.setProperty('--primary-color', settings.customColors.primary);
@@ -609,6 +815,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fontSize: fontSizeSlider.value,
             geminiApiKey: geminiApiKeyInput.value,
             recordAudio: recordAudioCheckbox.checked,
+            silenceTimeout: parseInt(document.getElementById('silence-timeout').value), // Added
             customColors: {
                 primary: document.getElementById('primary-color-picker').value,
                 background: document.getElementById('background-color-picker').value,
@@ -687,11 +894,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const undoBtn = document.getElementById('undo-btn');
-    const redoBtn = document.getElementById('redo-btn');
+    addFolderBtn.addEventListener('click', createFolder); // Add event listener for add folder button
 
-    if (undoBtn) undoBtn.addEventListener('click', undo);
-    if (redoBtn) redoBtn.addEventListener('click', redo);
+    const undoIconBtn = document.getElementById('undo-icon-btn'); // New ID
+    const redoIconBtn = document.getElementById('redo-icon-btn'); // New ID
+
+    if (undoIconBtn) undoIconBtn.addEventListener('click', undo);
+    if (redoIconBtn) redoIconBtn.addEventListener('click', redo);
 
     // --- Post-recording Actions ---
     summarizeBtn.addEventListener('click', async () => {
@@ -717,19 +926,59 @@ document.addEventListener('DOMContentLoaded', () => {
             URL.revokeObjectURL(audioBlobUrl);
             audioBlobUrl = null;
         }
+        downloadAudioBtn.style.display = 'none'; // Hide download button on discard
     });
 
     ttsBtn.addEventListener('click', speakTranscript);
 
+    downloadAudioBtn.addEventListener('click', () => {
+        if (audioBlobUrl) {
+            const a = document.createElement('a');
+            a.href = audioBlobUrl;
+            a.download = `audio_${new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '')}.webm`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            statusMessage.textContent = '오디오 파일이 다운로드되었습니다.';
+        } else {
+            statusMessage.textContent = '다운로드할 오디오가 없습니다.';
+        }
+    });
+
     finalTranscriptEl.addEventListener('input', saveNote);
     noteTitleInput.addEventListener('input', saveNote);
 
-    loadFileBtn.addEventListener('click', () => {
-        fileInput.click();
-    });
+    const loadFileIconBtn = document.getElementById('load-file-icon-btn'); // New ID
+    if (loadFileIconBtn) {
+        loadFileIconBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+    }
 
     newNoteBtn.addEventListener('click', () => {
         createNote();
+    });
+
+    const uploadAudioIconBtn = document.getElementById('upload-audio-icon-btn'); // New ID
+    if (uploadAudioIconBtn) {
+        uploadAudioIconBtn.addEventListener('click', () => {
+            audioFileInput.click();
+        });
+    }
+
+    audioFileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            audioPlayer.src = e.target.result;
+            audioPlayer.style.display = 'block';
+            statusMessage.textContent = '오디오 파일이 로드되었습니다. 재생하면서 녹음 버튼을 눌러 필사하세요.';
+        };
+        reader.readAsDataURL(file);
     });
 
     fileInput.addEventListener('change', (event) => {
@@ -751,7 +1000,10 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsText(file);
     });
 
-    searchBtn.addEventListener('click', searchTranscript);
+    const searchIconBtn = document.getElementById('search-icon-btn'); // New ID
+    if (searchIconBtn) {
+        searchIconBtn.addEventListener('click', searchTranscript);
+    }
     searchInput.addEventListener('keyup', (event) => {
         if (event.key === 'Enter') {
             searchTranscript();
@@ -760,7 +1012,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initial Load ---
     loadSettings();
-    loadNotes(); // Load all notes
+    loadData(); // Load all notes and folders
     updateUndoRedoButtons(); // Initialize undo/redo button states
     // Remove auth check
     recordBtn.disabled = false;
@@ -783,11 +1035,39 @@ document.addEventListener('DOMContentLoaded', () => {
     tagsDisplay.addEventListener('click', (event) => {
         if (event.target.classList.contains('tag-item')) {
             const clickedTag = event.target.textContent.replace(' x', '');
-            // Filter notes by tag
-            const filteredNotes = notes.filter(note => note.tags.includes(clickedTag));
-            renderNotesList(filteredNotes); // Render only filtered notes
+            currentTagFilter = clickedTag;
+            renderTagsList(); // Update active state in tags filter list
+            renderNotesList(); // Re-render notes with the new tag filter
         }
     });
+
+    noteSearchInput.addEventListener('keyup', (event) => {
+        renderNotesList(); // Re-render notes based on search input
+    });
+});
+
+async function shareNotesToGoogleDrive() {
+    if (!navigator.share) {
+        alert('죄송합니다. 이 브라우저에서는 웹 공유 API를 지원하지 않습니다. 파일을 직접 다운로드하여 Google Drive에 업로드해주세요.');
+        return;
+    }
+
+    try {
+        const notesData = JSON.stringify(notes, null, 2);
+        const blob = new Blob([notesData], { type: 'application/json' });
+        const file = new File([blob], 'voice_notes_backup.json', { type: 'application/json' });
+
+        await navigator.share({
+            files: [file],
+            title: '음성 필기 백업',
+            text: '음성 필기 앱의 노트 백업 파일입니다.',
+        });
+        statusMessage.textContent = '노트가 성공적으로 공유되었습니다.';
+    } catch (error) {
+        console.error('Error sharing notes:', error);
+        statusMessage.textContent = `노트 공유 실패: ${error.message}`;
+    }
+}
 });
 
 async function shareNotesToGoogleDrive() {

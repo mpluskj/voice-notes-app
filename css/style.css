@@ -140,9 +140,10 @@ body {
 
 .controls {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    align-items: flex-start; /* Changed to flex-start */
+    gap: 8px;
     flex-wrap: wrap;
+    overflow-x: auto; /* Added for horizontal scrolling */
 }
 
 #status-message {
@@ -187,17 +188,21 @@ body {
     margin-bottom: 10px;
 }
 
-.btn, .icon-btn, .fab-btn {
+.btn {
     border: none;
     border-radius: 8px;
-    padding: 10px 16px;
-    font-size: 0.9rem;
+    padding: 8px 14px;
+    font-size: 0.85rem;
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s, box-shadow 0.2s;
     background-color: var(--card-background-color);
     color: var(--primary-color);
     border: 1px solid var(--primary-color);
+    height: 36px; /* Explicit height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn:hover {
@@ -206,11 +211,20 @@ body {
 }
 
 .icon-btn {
-    padding: 8px;
+    padding: 6px;
     border-radius: 50%;
     background-color: transparent;
     border: none;
     color: var(--text-color);
+    height: 36px; /* Explicit height */
+    width: 36px; /* Explicit width for circular shape */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-btn i.material-icons {
+    font-size: 20px;
 }
 
 .icon-btn:hover {
@@ -218,8 +232,8 @@ body {
 }
 
 .fab-btn {
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background-color: var(--primary-color);
     color: white;
@@ -228,6 +242,10 @@ body {
     align-items: center;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     padding: 0;
+}
+
+.fab-btn i.material-icons {
+    font-size: 24px;
 }
 
 .fab-btn:hover {
@@ -332,6 +350,170 @@ body {
 [data-theme="dark"] .highlight {
     background-color: #FFFF00;
     color: #000000;
+}
+
+/* Folder Management Styles */
+.folder-management {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.folder-management h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+#folders-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.folder-item {
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s;
+}
+
+.folder-item:hover {
+    background-color: var(--sidebar-hover-background-color);
+}
+
+.folder-item.active {
+    background-color: var(--sidebar-active-background-color);
+    font-weight: bold;
+}
+
+.folder-name {
+    flex-grow: 1;
+}
+
+.delete-folder-btn {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-left: 10px;
+    opacity: 0.6;
+}
+
+.delete-folder-btn:hover {
+    opacity: 1;
+    color: #D32F2F;
+}
+
+/* Audio Player Styles */
+#audio-player {
+    width: 100%;
+    margin-top: 15px;
+    background-color: var(--card-background-color);
+    border-radius: 8px;
+    box-shadow: var(--box-shadow);
+}
+
+/* Tag Filter Management Styles */
+.tag-filter-management {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tag-filter-management h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+#tags-filter-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.tag-filter-item {
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s;
+}
+
+.tag-filter-item:hover {
+    background-color: var(--sidebar-hover-background-color);
+}
+
+.tag-filter-item.active {
+    background-color: var(--sidebar-active-background-color);
+    font-weight: bold;
+}
+
+/* Note Title Input */
+.note-title-input {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 15px;
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+    height: 36px; /* Explicit height */
+}
+
+.note-title-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(var(--primary-color), 0.2);
+}
+
+/* New styles for the updated UI */
+#note-search-input {
+    width: calc(100% - 32px); /* Adjust for padding */
+    padding: 8px 10px;
+    margin: 0 16px 16px 16px; /* Top, Right, Bottom, Left */
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+.transcript-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.transcript-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    border-bottom: none; /* Remove duplicate border */
+    padding-bottom: 0; /* Remove duplicate padding */
+}
+
+.action-icons {
+    display: flex;
+    gap: 8px;
+}
+
+.icon-input {
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    height: 36px; /* Match icon button height */
+    box-sizing: border-box;
 }
 
 /* Responsive Design */
