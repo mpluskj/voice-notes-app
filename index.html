@@ -51,7 +51,7 @@
                 <div class="transcription-container card">
                     <input type="text" id="note-title-input" placeholder="노트 제목" class="note-title-input">
                     <div class="transcript-header"> <!-- New: Header for transcription content -->
-                        <h2>필기 내용</h2> <!-- Changed text -->
+                        <!-- Removed: <h2>필기 내용</h2> -->
                         <div class="action-icons"> <!-- New: Container for action icons -->
                             <input type="file" id="file-input" accept=".txt" style="display: none;">
                             <button id="load-file-icon-btn" class="icon-btn" title="파일 불러오기"><i class="material-icons">upload_file</i></button>
@@ -59,9 +59,12 @@
                             <button id="upload-audio-icon-btn" class="icon-btn" title="오디오 파일 업로드"><i class="material-icons">audiotrack</i></button>
                             <button id="undo-icon-btn" class="icon-btn" title="실행 취소"><i class="material-icons">undo</i></button>
                             <button id="redo-icon-btn" class="icon-btn" title="다시 실행"><i class="material-icons">redo</i></button>
-                            <input type="text" id="search-input" placeholder="필기 내용 검색..." class="icon-input"> <!-- Changed placeholder and added class -->
-                            <button id="search-icon-btn" class="icon-btn" title="검색"><i class="material-icons">search</i></button>
                         </div>
+                    </div>
+                    <!-- New: Search input and button moved here -->
+                    <div class="transcript-search-controls">
+                        <input type="text" id="search-input" placeholder="필기 내용 검색..." class="icon-input">
+                        <button id="search-icon-btn" class="icon-btn" title="검색"><i class="material-icons">search</i></button>
                     </div>
                     <div id="interim-transcript"></div>
                     <div id="final-transcript" contenteditable="true"></div>

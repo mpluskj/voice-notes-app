@@ -1068,7 +1068,7 @@ async function shareNotesToGoogleDrive() {
         statusMessage.textContent = `노트 공유 실패: ${error.message}`;
     }
 }
-});
+
 
 async function shareNotesToGoogleDrive() {
     if (!navigator.share) {
