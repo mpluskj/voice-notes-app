@@ -341,8 +341,11 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         recognition.onend = () => {
-            if (isRecording) { // Unexpected stop
-                stopRecording(true);
+            if (isRecording) { // Unexpected stop, try to restart
+                recognition.start(); // Attempt to restart recognition
+            } else {
+                // If not recording, then it was an intentional stop or final end
+                stopRecording(false); // Ensure proper cleanup if it was a manual stop
             }
         };
 
