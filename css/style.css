@@ -65,7 +65,7 @@ body {
 .app-body {
     display: flex;
     flex-grow: 1;
-    overflow: hidden;
+    overflow-y: auto; /* Changed from hidden to auto for vertical scrolling */
 }
 
 .sidebar {
@@ -140,14 +140,15 @@ body {
 
 .controls {
     display: flex;
-    align-items: flex-start; /* Changed to flex-start */
+    align-items: flex-start;
     gap: 8px;
-    flex-wrap: wrap;
-    overflow-x: auto; /* Added for horizontal scrolling */
+    flex-wrap: wrap; /* Re-added flex-wrap */
+    /* Removed overflow-x: auto; */
+    justify-content: flex-start;
 }
 
 #status-message {
-    flex-grow: 1;
+    /* Removed flex-grow: 1; */
     text-align: center;
     font-style: italic;
     opacity: 0.8;
