@@ -1,1 +1,1 @@
-Fix: Use dynamic import for VAD library and remove loadScript function
+Fix: Explicitly import MicVAD from vad-web module

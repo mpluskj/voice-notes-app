@@ -996,7 +996,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Dynamically import onnxruntime-web (if needed, though vad-web might handle it internally)
             const ort = await import('https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.js');
-            const vadModule = await import('https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@latest/dist/bundle.min.js');
+            const MicVAD = await import('https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@latest/dist/bundle.min.js');
             const MicVAD = vadModule.MicVAD;
 
             console.log('VAD library imported. Initializing MicVAD...');
