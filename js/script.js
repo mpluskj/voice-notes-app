@@ -996,10 +996,16 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Dynamically import onnxruntime-web (if needed, though vad-web might handle it internally)
             // Set the path for onnxruntime-web WASM files
-            window.ort = window.ort || {}; // Ensure ort object exists
+            window.ort = window.ort || {};
             window.ort.env = window.ort.env || {};
             window.ort.env.wasm = window.ort.env.wasm || {};
             window.ort.env.wasm.wasmPath = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
+            window.ort.env.wasm.numThreads = 1; // Often helps with WASM loading issues
+            window.ort.env.wasm.simd = true; // Enable SIMD if supported
+            window.ort.env.wasm.proxy = true; // Use web worker for WASM if supported
+
+            // Set the path for the ONNX model file
+            window.ort.env.modelPath = 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@latest/dist/';
             const ortModule = await import('https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.js');
             const vadModule = await import('https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@latest/dist/bundle.min.js');
 
