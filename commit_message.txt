@@ -1,1 +1,1 @@
-Feat: Dynamically load VAD libraries and ensure proper initialization
+Fix: Use dynamic import for VAD library
