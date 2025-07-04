@@ -1,1 +1,1 @@
-Fix: Ensure VAD library is loaded before initialization
+Fix: Ensure script.js executes after VAD library is loaded

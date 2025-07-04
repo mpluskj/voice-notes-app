@@ -988,12 +988,32 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Initial Load ---
-    main();
+    async function loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = () => {
+                console.log(`${src} loaded.`);
+                resolve();
+            };
+            script.onerror = () => {
+                console.error(`Failed to load ${src}`);
+                reject(new Error(`Failed to load ${src}`));
+            };
+            document.body.appendChild(script);
+        });
+    }
 
     async function main() {
+        console.log('main function started.');
         recordBtn.disabled = true;
         statusMessage.textContent = 'VAD 라이브러리 로딩 중...';
+
         try {
+            await loadScript('https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.js');
+            await loadScript('https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@latest/dist/bundle.min.js');
+
+            console.log('VAD libraries loaded. Initializing MicVAD...');
             vad = await MicVAD.new({
                 onSpeechStart: () => {
                     isSpeaking = true;
@@ -1014,6 +1034,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
+            console.log('MicVAD initialized.');
             recordBtn.disabled = false;
             statusMessage.textContent = '녹음 준비 완료';
         } catch (error) {
@@ -1024,7 +1045,10 @@ document.addEventListener('DOMContentLoaded', () => {
         loadSettings();
         loadData(); // Load all notes and folders
         updateUndoRedoButtons(); // Initialize undo/redo button states
+        console.log('Initial load complete.');
     }
+
+    main();
 
     // Tag Input Event Listeners
     tagInput.addEventListener('keyup', (event) => {
