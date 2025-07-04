@@ -1,1 +1,1 @@
-Fix: Correct syntax errors in script.js
+Fix: Add check for VAD library before use
