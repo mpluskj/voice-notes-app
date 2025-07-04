@@ -52,7 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const deleteAllNotesBtn = document.getElementById('delete-all-notes-btn');
     const darkModeToggleBtn = document.getElementById('dark-mode-toggle-btn');
     const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
-    const sidebar = document.querySelector('.sidebar');
+    """    const sidebar = document.querySelector('.sidebar');
+    const audioVisualizer = document.getElementById('audio-visualizer');
 
 
     // --- State ---
@@ -71,6 +72,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let historyIndex = -1; // Current position in the history array
     let lastProcessedResultIndex = 0; // New: To track the last processed result index for final results
     let silenceTimeoutId = null; // Moved: To manage silence timeout
+    let audioContext = null;
+    let analyser = null;
+    let visualizerCanvasCtx = null;
+    let vad = null;
+    let isSpeaking = false;""
 
     // --- Local Storage Management ---
     function loadData() {
@@ -443,10 +449,23 @@ document.addEventListener('DOMContentLoaded', () => {
         postRecordingActions.style.display = 'none';
         saveNote(); // Save current (empty) state
 
-        // Audio Recording Setup
-        if (settings.recordAudio) {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioVisualizer.style.display = 'block';
+        visualizerCanvasCtx = audioVisualizer.getContext('2d');
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    noiseSuppression: true,
+                    echoCancellation: true
+                }
+            });
+
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioContext.createAnalyser();
+            const mediaStreamSource = audioContext.createMediaStreamSource(stream);
+            mediaStreamSource.connect(analyser);
+
+            if (settings.recordAudio) {
                 mediaRecorder = new MediaRecorder(stream);
                 audioChunks = [];
                 audioStartTime = Date.now();
@@ -458,16 +477,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 mediaRecorder.onstop = () => {
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                     audioBlobUrl = URL.createObjectURL(audioBlob);
-                    // You might want to add a UI element to play this audio
                 };
-
-                mediaRecorder.start();
-                statusMessage.textContent = '녹음 중... (오디오 기록 중)';
-            } catch (error) {
-                console.error('Error starting audio recording:', error);
-                statusMessage.textContent = `오류: 오디오 기록 시작 실패 - ${error.message}`;
-                // Proceed with speech recognition even if audio recording fails
             }
+
+            vad = new VAD({
+                onSpeechStart: () => {
+                    isSpeaking = true;
+                    if (mediaRecorder && mediaRecorder.state === 'inactive') {
+                        mediaRecorder.start();
+                    }
+                    if (recognition && !isRecording) {
+                        recognition.start();
+                    }
+                },
+                onSpeechEnd: () => {
+                    isSpeaking = false;
+                    if (mediaRecorder && mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                    }
+                    if (recognition && isRecording) {
+                        recognition.stop();
+                    }
+                }
+            });
+            vad.start();
+
+            drawVisualizer();
+
+        } catch (error) {
+            console.error('Error starting audio recording:', error);
+            statusMessage.textContent = `오류: 오디오 기록 시작 실패 - ${error.message}`;
+            isRecording = false;
+            updateRecordButton();
+            audioVisualizer.style.display = 'none';
+            if (audioContext) {
+                audioContext.close();
+            }
+            return; // Stop execution if there's an error
         }
 
         recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -479,28 +525,20 @@ document.addEventListener('DOMContentLoaded', () => {
             let interimTranscript = '';
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 if (event.results[i].isFinal) {
-                    // Only process new final results
                     if (i < lastProcessedResultIndex) {
                         continue;
                     }
-                    lastProcessedResultIndex = i + 1; // Update the last processed index
+                    lastProcessedResultIndex = i + 1;
 
                     const transcript = event.results[i][0].transcript.trim();
 
-                    // Check for duplication before appending
-                    const currentFinalText = finalTranscriptEl.textContent.trim().replace(/\n/g, '');
-
-                    // Check for duplication before appending
                     if (currentFinalText.endsWith(transcript) || currentFinalText.endsWith(transcript + '.')) {
-                        // This transcript is already part of the final text, skip it
                         continue;
                     }
 
                     const timestamp = (Date.now() - audioStartTime) / 1000; // seconds
-                    // Add period if not already present and not an empty string
                     const textToAdd = transcript + (transcript.endsWith('.') || transcript.endsWith('!') || transcript.endsWith('?') || transcript.length === 0 ? '' : '.');
 
-                    // Add newline before new final segment if finalTranscriptEl is not empty
                     if (finalTranscriptEl.innerHTML.trim().length > 0) {
                         finalTranscriptEl.appendChild(document.createElement('br'));
                     }
@@ -517,15 +555,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                     finalTranscriptEl.appendChild(span);
-                    saveNote(); // Save after each final transcript update
+                    saveNote();
 
-                    // Reset silence timeout on final result
                     clearTimeout(silenceTimeoutId);
                     silenceTimeoutId = setTimeout(() => {
                         if (isRecording) {
                             stopRecording();
                         }
-                    }, settings.silenceTimeout * 1000); // Convert seconds to milliseconds
+                    }, settings.silenceTimeout * 1000);
 
                 } else {
                     interimTranscript += event.results[i][0].transcript;
@@ -535,12 +572,11 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         recognition.onend = () => {
-            clearTimeout(silenceTimeoutId); // Clear any pending silence timeout
-            if (isRecording) { // Unexpected stop, try to restart
-                recognition.start(); // Attempt to restart recognition
+            clearTimeout(silenceTimeoutId);
+            if (isRecording && isSpeaking) {
+                recognition.start();
             } else {
-                // If not recording, then it was an intentional stop or final end
-                stopRecording(false); // Ensure proper cleanup if it was a manual stop
+                stopRecording(false);
             }
         };
 
@@ -550,12 +586,17 @@ document.addEventListener('DOMContentLoaded', () => {
             stopRecording();
         };
 
-        recognition.start();
+        // recognition.start(); // VAD will start recognition
     }
 
     function stopRecording(unexpected = false) {
         if (!isRecording) return;
         isRecording = false;
+
+        if (vad) {
+            vad.stop();
+            vad = null;
+        }
 
         if (recognition) {
             recognition.stop();
@@ -564,6 +605,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             mediaRecorder.stop();
         }
+
+        if (audioContext) {
+            audioContext.close();
+            audioContext = null;
+        }
+
+        audioVisualizer.style.display = 'none';
 
         updateRecordButton();
 
@@ -576,16 +624,54 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMessage.textContent = '녹음 완료.';
             postRecordingActions.style.display = 'flex';
             if (audioBlobUrl) {
-                downloadAudioBtn.style.display = 'inline-block'; // Show download button if audio exists
+                downloadAudioBtn.style.display = 'inline-block';
             } else {
                 downloadAudioBtn.style.display = 'none';
             }
-            saveNote(); // Save final transcript on stop
+            saveNote();
         } else {
             statusMessage.textContent = '녹음이 중지되었습니다. 인식된 내용이 없습니다.';
             postRecordingActions.style.display = 'none';
-            downloadAudioBtn.style.display = 'none'; // Hide download button if no audio
+            downloadAudioBtn.style.display = 'none';
         }
+    }
+
+    function drawVisualizer() {
+        if (!isRecording) return;
+
+        requestAnimationFrame(drawVisualizer);
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteTimeDomainData(dataArray);
+
+        visualizerCanvasCtx.fillStyle = 'rgb(200, 200, 200)';
+        visualizerCanvasCtx.fillRect(0, 0, audioVisualizer.width, audioVisualizer.height);
+
+        visualizerCanvasCtx.lineWidth = 2;
+        visualizerCanvasCtx.strokeStyle = 'rgb(0, 0, 0)';
+
+        visualizerCanvasCtx.beginPath();
+
+        const sliceWidth = audioVisualizer.width * 1.0 / bufferLength;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+
+            const v = dataArray[i] / 128.0;
+            const y = v * audioVisualizer.height / 2;
+
+            if (i === 0) {
+                visualizerCanvasCtx.moveTo(x, y);
+            } else {
+                visualizerCanvasCtx.lineTo(x, y);
+            }
+
+            x += sliceWidth;
+        }
+
+        visualizerCanvasCtx.lineTo(audioVisualizer.width, audioVisualizer.height / 2);
+        visualizerCanvasCtx.stroke();
     }
 
     async function generateSummary() {
