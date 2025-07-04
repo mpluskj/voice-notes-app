@@ -480,12 +480,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
-            if (typeof VAD === 'undefined') {
+            if (typeof MicVAD === 'undefined') {
                 alert('VAD 라이브러리가 로드되지 않았습니다. 페이지를 새로고침 해주세요.');
                 return;
             }
 
-            vad = new VAD({
+            vad = await MicVAD.new({
                 onSpeechStart: () => {
                     isSpeaking = true;
                     if (mediaRecorder && mediaRecorder.state === 'inactive') {
@@ -599,7 +599,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isRecording = false;
 
         if (vad) {
-            vad.stop();
+            vad.destroy();
             vad = null;
         }
 

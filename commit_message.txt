@@ -1,1 +1,1 @@
-Fix: Add check for VAD library before use
+Fix: Load VAD and ONNX runtime libraries
