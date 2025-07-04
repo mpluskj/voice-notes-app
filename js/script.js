@@ -431,24 +431,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Real-time Transcription ---
     async function startRecording() {
-        if (isRecording) return;
-
-        clearTimeout(silenceTimeoutId); // Clear any existing silence timeout
-
-        const settings = loadSettings(false);
-        if (!settings.geminiApiKey) {
-            alert('Gemini API 키를 설정에서 입력해주세요.');
-            return;
-        }
+        if (isRecording || !vad) return;
 
         isRecording = true;
-        lastProcessedResultIndex = 0; // Reset on new recording session
         updateRecordButton();
         statusMessage.textContent = '녹음 중...';
-        summaryOutputEl.innerHTML = '';
-        postRecordingActions.style.display = 'none';
-        saveNote(); // Save current (empty) state
-
         audioVisualizer.style.display = 'block';
         visualizerCanvasCtx = audioVisualizer.getContext('2d');
 
@@ -465,7 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const mediaStreamSource = audioContext.createMediaStreamSource(stream);
             mediaStreamSource.connect(analyser);
 
-            if (settings.recordAudio) {
+            if (loadSettings(false).recordAudio) {
                 mediaRecorder = new MediaRecorder(stream);
                 audioChunks = [];
                 audioStartTime = Date.now();
@@ -480,33 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
-            if (typeof MicVAD === 'undefined') {
-                alert('VAD 라이브러리가 로드되지 않았습니다. 페이지를 새로고침 해주세요.');
-                return;
-            }
-
-            vad = await MicVAD.new({
-                onSpeechStart: () => {
-                    isSpeaking = true;
-                    if (mediaRecorder && mediaRecorder.state === 'inactive') {
-                        mediaRecorder.start();
-                    }
-                    if (recognition && !isRecording) {
-                        recognition.start();
-                    }
-                },
-                onSpeechEnd: () => {
-                    isSpeaking = false;
-                    if (mediaRecorder && mediaRecorder.state === 'recording') {
-                        mediaRecorder.stop();
-                    }
-                    if (recognition && isRecording) {
-                        recognition.stop();
-                    }
-                }
-            });
             vad.start();
-
             drawVisualizer();
 
         } catch (error) {
@@ -518,80 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (audioContext) {
                 audioContext.close();
             }
-            return; // Stop execution if there's an error
         }
-
-        recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = settings.language;
-        recognition.interimResults = true;
-        recognition.continuous = true;
-
-        recognition.onresult = (event) => {
-            let interimTranscript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    if (i < lastProcessedResultIndex) {
-                        continue;
-                    }
-                    lastProcessedResultIndex = i + 1;
-
-                    const transcript = event.results[i][0].transcript.trim();                    const currentFinalText = finalTranscriptEl.textContent.trim().replace(/\n/g, '');
-
-                    if (currentFinalText.endsWith(transcript) || currentFinalText.endsWith(transcript + '.')) {
-                        continue;
-                    }
-
-                    const timestamp = (Date.now() - audioStartTime) / 1000; // seconds
-                    const textToAdd = transcript + (transcript.endsWith('.') || transcript.endsWith('!') || transcript.endsWith('?') || transcript.length === 0 ? '' : '.');
-
-                    if (finalTranscriptEl.innerHTML.trim().length > 0) {
-                        finalTranscriptEl.appendChild(document.createElement('br'));
-                    }
-
-                    const span = document.createElement('span');
-                    span.textContent = textToAdd;
-                    span.dataset.timestamp = timestamp;
-                    span.classList.add('transcript-segment');
-                    span.addEventListener('click', () => {
-                        if (audioBlobUrl) {
-                            const audio = new Audio(audioBlobUrl);
-                            audio.currentTime = timestamp;
-                            audio.play();
-                        }
-                    });
-                    finalTranscriptEl.appendChild(span);
-                    saveNote();
-
-                    clearTimeout(silenceTimeoutId);
-                    silenceTimeoutId = setTimeout(() => {
-                        if (isRecording) {
-                            stopRecording();
-                        }
-                    }, settings.silenceTimeout * 1000);
-
-                } else {
-                    interimTranscript += event.results[i][0].transcript;
-                }
-            }
-            interimTranscriptEl.textContent = interimTranscript;
-        };
-
-        recognition.onend = () => {
-            clearTimeout(silenceTimeoutId);
-            if (isRecording && isSpeaking) {
-                recognition.start();
-            } else {
-                stopRecording(false);
-            }
-        };
-
-        recognition.onerror = (event) => {
-            console.error('Speech Recognition Error:', event.error);
-            statusMessage.textContent = `오류: ${event.error}`;
-            stopRecording();
-        };
-
-        // recognition.start(); // VAD will start recognition
     }
 
     function stopRecording(unexpected = false) {
@@ -599,8 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isRecording = false;
 
         if (vad) {
-            vad.destroy();
-            vad = null;
+            vad.pause();
         }
 
         if (recognition) {
@@ -1101,12 +988,43 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Initial Load ---
-    loadSettings();
-    loadData(); // Load all notes and folders
-    updateUndoRedoButtons(); // Initialize undo/redo button states
-    // Remove auth check
-    recordBtn.disabled = false;
-    statusMessage.textContent = '버튼을 눌러 녹음을 시작하세요';
+    async function main() {
+        recordBtn.disabled = true;
+        statusMessage.textContent = 'VAD 라이브러리 로딩 중...';
+        try {
+            vad = await MicVAD.new({
+                onSpeechStart: () => {
+                    isSpeaking = true;
+                    if (mediaRecorder && mediaRecorder.state === 'inactive') {
+                        mediaRecorder.start();
+                    }
+                    if (recognition && !isRecording) {
+                        recognition.start();
+                    }
+                },
+                onSpeechEnd: () => {
+                    isSpeaking = false;
+                    if (mediaRecorder && mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                    }
+                    if (recognition && isRecording) {
+                        recognition.stop();
+                    }
+                }
+            });
+            recordBtn.disabled = false;
+            statusMessage.textContent = '녹음 준비 완료';
+        } catch (error) {
+            console.error('Failed to initialize VAD:', error);
+            statusMessage.textContent = 'VAD 초기화 실패. 마이크 권한을 확인하거나 페이지를 새로고침하세요.';
+        }
+
+        loadSettings();
+        loadData(); // Load all notes and folders
+        updateUndoRedoButtons(); // Initialize undo/redo button states
+    }
+
+    main();
 
     // Tag Input Event Listeners
     tagInput.addEventListener('keyup', (event) => {
