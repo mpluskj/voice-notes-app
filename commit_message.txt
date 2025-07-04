@@ -1,1 +1,1 @@
-Fix: Correctly import MicVAD as a module
+Fix: Correctly reference MicVAD from the imported module
