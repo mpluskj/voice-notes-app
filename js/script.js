@@ -988,32 +988,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Initial Load ---
-    async function loadScript(src) {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = () => {
-                console.log(`${src} loaded.`);
-                resolve();
-            };
-            script.onerror = () => {
-                console.error(`Failed to load ${src}`);
-                reject(new Error(`Failed to load ${src}`));
-            };
-            document.body.appendChild(script);
-        });
-    }
-
     async function main() {
         console.log('main function started.');
         recordBtn.disabled = true;
         statusMessage.textContent = 'VAD 라이브러리 로딩 중...';
 
         try {
-            await loadScript('https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.js');
-            await loadScript('https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@latest/dist/bundle.min.js');
+            // Dynamically import onnxruntime-web (if needed, though vad-web might handle it internally)
+            // await import('https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.js'); 
+            
+            // Dynamically import MicVAD
+            const { MicVAD } = await import('https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@latest/dist/bundle.min.js');
 
-            console.log('VAD libraries loaded. Initializing MicVAD...');
+            console.log('VAD library imported. Initializing MicVAD...');
             vad = await MicVAD.new({
                 onSpeechStart: () => {
                     isSpeaking = true;
