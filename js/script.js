@@ -999,7 +999,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const vadModule = await import('https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@latest/dist/bundle.min.js');
 
             console.log('VAD library imported. Initializing MicVAD...');
-            vad = await vadModule.MicVAD.new({
+            vad = await window.vad.MicVAD.new({
                 onSpeechStart: () => {
                     isSpeaking = true;
                     if (mediaRecorder && mediaRecorder.state === 'inactive') {
