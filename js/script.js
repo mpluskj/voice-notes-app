@@ -988,6 +988,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Initial Load ---
+    const vadScript = document.getElementById('vad-script');
+    vadScript.onload = () => {
+        main();
+    };
+
     async function main() {
         recordBtn.disabled = true;
         statusMessage.textContent = 'VAD 라이브러리 로딩 중...';
@@ -1023,8 +1028,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadData(); // Load all notes and folders
         updateUndoRedoButtons(); // Initialize undo/redo button states
     }
-
-    main();
 
     // Tag Input Event Listeners
     tagInput.addEventListener('keyup', (event) => {

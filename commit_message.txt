@@ -1,1 +1,1 @@
-Fix: Use correct VAD library and initialization
+Fix: Pre-initialize VAD to prevent loading issues
