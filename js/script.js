@@ -988,10 +988,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Initial Load ---
-    const vadScript = document.getElementById('vad-script');
-    vadScript.onload = () => {
-        main();
-    };
+    main();
 
     async function main() {
         recordBtn.disabled = true;
