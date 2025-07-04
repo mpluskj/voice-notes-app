@@ -1,1 +1,1 @@
-Fix: Use dynamic import for VAD library
+Fix: Use dynamic import for VAD library and remove loadScript function
