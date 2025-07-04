@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const deleteAllNotesBtn = document.getElementById('delete-all-notes-btn');
     const darkModeToggleBtn = document.getElementById('dark-mode-toggle-btn');
     const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
-    """    const sidebar = document.querySelector('.sidebar');
+    const sidebar = document.querySelector('.sidebar');
     const audioVisualizer = document.getElementById('audio-visualizer');
 
 
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let analyser = null;
     let visualizerCanvasCtx = null;
     let vad = null;
-    let isSpeaking = false;""
+    let isSpeaking = false;
 
     // --- Local Storage Management ---
     function loadData() {
@@ -530,7 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     lastProcessedResultIndex = i + 1;
 
-                    const transcript = event.results[i][0].transcript.trim();
+                    const transcript = event.results[i][0].transcript.trim();                    const currentFinalText = finalTranscriptEl.textContent.trim().replace(/\n/g, '');
 
                     if (currentFinalText.endsWith(transcript) || currentFinalText.endsWith(transcript + '.')) {
                         continue;
