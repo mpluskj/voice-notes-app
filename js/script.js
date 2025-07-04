@@ -480,6 +480,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
+            if (typeof VAD === 'undefined') {
+                alert('VAD 라이브러리가 로드되지 않았습니다. 페이지를 새로고침 해주세요.');
+                return;
+            }
+
             vad = new VAD({
                 onSpeechStart: () => {
                     isSpeaking = true;
