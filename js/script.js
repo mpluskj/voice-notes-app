@@ -1011,6 +1011,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             console.log('VAD library imported. Initializing MicVAD...');
             vad = await window.vad.MicVAD.new({
+                modelURL: 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@latest/dist/silero_vad_legacy.onnx',
                 onSpeechStart: () => {
                     isSpeaking = true;
                     if (mediaRecorder && mediaRecorder.state === 'inactive') {
