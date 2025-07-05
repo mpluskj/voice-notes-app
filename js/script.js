@@ -994,11 +994,8 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMessage.textContent = 'VAD 라이브러리 로딩 중...';
 
         try {
-            // Dynamically import the VAD library.
-            await import('https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.13/dist/bundle.min.js');
-
-            // The library might attach 'vad' to the window object asynchronously.
-            // We will wait for it to be available.
+            // The VAD library is now loaded via a script tag in index.html
+            // We just need to wait for the window.vad object to be available.
             await new Promise(resolve => {
                 const interval = setInterval(() => {
                     if (window.vad) {
@@ -1008,10 +1005,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 100);
             });
 
-            console.log('VAD library imported. Initializing MicVAD...');
+            console.log('VAD library available. Initializing MicVAD...');
             vad = await window.vad.MicVAD.new({
-                // Explicitly provide the URLs for the model and the worklet
-                // to avoid issues with cross-origin loading or path resolution.
+                // Re-adding the explicit URLs as a safeguard, although it might not be necessary
+                // with the script tag loading method.
                 modelURL: 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.13/dist/silero_vad.onnx',
                 workletURL: 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.13/dist/vad.worklet.min.js',
 

@@ -1,1 +1,1 @@
-Fix: VAD initialization by waiting for global object
+Fix: VAD worklet loading error by providing full URL
