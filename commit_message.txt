@@ -1,1 +1,1 @@
-Fix: VAD worklet loading error by providing full URL
+Refactor: Load VAD library via script tag in HTML
