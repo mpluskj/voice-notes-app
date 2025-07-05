@@ -1,1 +1,1 @@
-Refactor: Load VAD library via script tag in HTML
+Feat: Localize VAD library to resolve CORS issue
