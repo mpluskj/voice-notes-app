@@ -1,1 +1,1 @@
-Fix: Remove direct loading of vad.worklet.bundle.min.js in index.html
+Fix: Re-add bundle.min.js to index.html for VAD library loading

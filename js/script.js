@@ -1005,6 +1005,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 100);
             });
 
+            // Re-introduce onnxruntime-web WASM path configuration
+            window.ort = window.ort || {};
+            window.ort.env = window.ort.env || {};
+            window.ort.env.wasm = window.ort.env.wasm || {};
+            // Set WASM path to a known CDN for onnxruntime-web
+            window.ort.env.wasm.wasmPath = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.1/dist/';
+            window.ort.env.wasm.numThreads = 1; // Often helps with WASM loading issues
+            window.ort.env.wasm.simd = true; // Enable SIMD if supported
+            window.ort.env.wasm.proxy = true; // Use web worker for WASM if supported
+
             console.log('VAD library available. Initializing MicVAD...');
             vad = await window.vad.MicVAD.new({
                 modelURL: 'js/silero_vad.onnx',
