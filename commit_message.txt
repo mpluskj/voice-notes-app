@@ -1,1 +1,1 @@
-Fix: Re-add bundle.min.js to index.html for VAD library loading
+Fix: Add onnxruntime-web WASM path configuration
