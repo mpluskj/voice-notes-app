@@ -1,1 +1,1 @@
-Fix: Add onnxruntime-web WASM path configuration
+Fix: Move onnxruntime-web WASM path configuration to index.html

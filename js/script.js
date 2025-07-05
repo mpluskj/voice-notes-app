@@ -1007,7 +1007,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             console.log('VAD library available. Initializing MicVAD...');
             vad = await window.vad.MicVAD.new({
-                modelURL: 'js/silero_vad.onnx',
+                modelURL: 'js/silero_vad_legacy.onnx',
                 workletURL: 'js/vad.worklet.bundle.min.js',
 
                 onSpeechStart: () => {
