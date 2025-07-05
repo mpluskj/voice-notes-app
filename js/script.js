@@ -1010,6 +1010,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             console.log('VAD library imported. Initializing MicVAD...');
             vad = await window.vad.MicVAD.new({
+                // Explicitly provide the URLs for the model and the worklet
+                // to avoid issues with cross-origin loading or path resolution.
+                modelURL: 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.13/dist/silero_vad.onnx',
+                workletURL: 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.13/dist/vad.worklet.min.js',
+
                 onSpeechStart: () => {
                     isSpeaking = true;
                     console.log("Speech started");

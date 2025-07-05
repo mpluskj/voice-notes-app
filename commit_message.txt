@@ -1,1 +1,1 @@
-Fix: VAD initialization by using default export
+Fix: VAD initialization by waiting for global object
