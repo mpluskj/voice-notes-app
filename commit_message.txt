@@ -1,1 +1,1 @@
-Fix: Remove explicit workletURL to let VAD library handle it internally
+Feat: Use vad.worklet.bundle.min.js for VAD initialization
