@@ -1006,24 +1006,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             console.log('VAD library available. Initializing MicVAD...');
-            vad = await window.vad.MicVAD.new({
-                workletURL: 'js/vad.worklet.bundle.min.js',
-
-                onSpeechStart: () => {
-                    isSpeaking = true;
-                    console.log("Speech started");
-                    if (recognition && !isRecording) {
-                        recognition.start();
-                    }
-                },
-                onSpeechEnd: (audio) => {
-                    isSpeaking = false;
-                    console.log("Speech ended");
-                    if (recognition && isRecording) {
-                        recognition.stop();
-                    }
-                }
-            });
             console.log('MicVAD initialized.');
             recordBtn.disabled = false;
             statusMessage.textContent = '녹음 준비 완료';

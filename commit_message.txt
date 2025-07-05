@@ -1,1 +1,1 @@
-Fix: Use silero_vad_legacy.onnx for modelURL
+Fix: Allow VAD library to load model from CDN
