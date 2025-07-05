@@ -1,1 +1,1 @@
-Feat: Localize VAD library to resolve CORS issue
+Fix: Remove explicit workletURL to let VAD library handle it internally
