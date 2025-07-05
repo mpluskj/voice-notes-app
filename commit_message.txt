@@ -1,1 +1,1 @@
-Feat: Use vad.worklet.bundle.min.js for VAD initialization
+Fix: Remove direct loading of vad.worklet.bundle.min.js in index.html
