@@ -1,1 +1,1 @@
-Fix: Correctly reference MicVAD from the imported module
+Fix: Explicitly set modelURL for MicVAD initialization

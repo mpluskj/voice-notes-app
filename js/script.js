@@ -994,40 +994,34 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMessage.textContent = 'VAD 라이브러리 로딩 중...';
 
         try {
-            // Dynamically import onnxruntime-web (if needed, though vad-web might handle it internally)
-            // Set the path for onnxruntime-web WASM files
-            window.ort = window.ort || {};
-            window.ort.env = window.ort.env || {};
-            window.ort.env.wasm = window.ort.env.wasm || {};
-            window.ort.env.wasm.wasmPath = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
-            window.ort.env.wasm.numThreads = 1; // Often helps with WASM loading issues
-            window.ort.env.wasm.simd = true; // Enable SIMD if supported
-            window.ort.env.wasm.proxy = true; // Use web worker for WASM if supported
-
-            // Set the path for the ONNX model file
-            window.ort.env.modelPath = 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@latest/dist/';
-            const ortModule = await import('https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.js');
-            const vadModule = await import('https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@latest/dist/bundle.min.js');
+            // Dynamically import the VAD library. It should handle its own dependencies.
+            const vadModule = await import('https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.13/dist/bundle.min.js');
+            window.vad = vadModule; // Assign the module to the window object if it's not done automatically
 
             console.log('VAD library imported. Initializing MicVAD...');
             vad = await window.vad.MicVAD.new({
-                modelURL: 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@latest/dist/silero_vad_legacy.onnx',
+                // The modelURL is often optional as the library might have a default.
+                // If issues persist, explicitly providing the full URL is a good step.
+                // modelURL: 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.13/dist/silero_vad.onnx',
+
                 onSpeechStart: () => {
                     isSpeaking = true;
-                    if (mediaRecorder && mediaRecorder.state === 'inactive') {
-                        mediaRecorder.start();
-                    }
+                    console.log("Speech started");
                     if (recognition && !isRecording) {
                         recognition.start();
                     }
                 },
-                onSpeechEnd: () => {
+                onSpeechEnd: (audio) => {
                     isSpeaking = false;
-                    if (mediaRecorder && mediaRecorder.state === 'recording') {
-                        mediaRecorder.stop();
-                    }
+                    console.log("Speech ended");
                     if (recognition && isRecording) {
                         recognition.stop();
+                    }
+                    // The onSpeechEnd callback often provides the audio chunk.
+                    // You can handle it here if needed, e.g., for media recording.
+                    if (mediaRecorder && mediaRecorder.state === 'recording') {
+                        // This part might need adjustment based on how you want to handle audio chunks.
+                        // The VAD library might not integrate directly with MediaRecorder in this way.
                     }
                 }
             });
