@@ -994,16 +994,13 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMessage.textContent = 'VAD 라이브러리 로딩 중...';
 
         try {
-            // Dynamically import the VAD library. It should handle its own dependencies.
+            // Dynamically import the VAD library.
             const vadModule = await import('https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.13/dist/bundle.min.js');
-            window.vad = vadModule; // Assign the module to the window object if it's not done automatically
+            // The actual VAD functionality is likely on the 'default' export of the module.
+            window.vad = vadModule.default; 
 
             console.log('VAD library imported. Initializing MicVAD...');
             vad = await window.vad.MicVAD.new({
-                // The modelURL is often optional as the library might have a default.
-                // If issues persist, explicitly providing the full URL is a good step.
-                // modelURL: 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.13/dist/silero_vad.onnx',
-
                 onSpeechStart: () => {
                     isSpeaking = true;
                     console.log("Speech started");
@@ -1016,12 +1013,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log("Speech ended");
                     if (recognition && isRecording) {
                         recognition.stop();
-                    }
-                    // The onSpeechEnd callback often provides the audio chunk.
-                    // You can handle it here if needed, e.g., for media recording.
-                    if (mediaRecorder && mediaRecorder.state === 'recording') {
-                        // This part might need adjustment based on how you want to handle audio chunks.
-                        // The VAD library might not integrate directly with MediaRecorder in this way.
                     }
                 }
             });

@@ -1,1 +1,1 @@
-Fix: Explicitly set modelURL for MicVAD initialization
+Fix: VAD initialization error
