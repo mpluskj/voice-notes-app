@@ -1,1 +1,1 @@
-Fix: Move onnxruntime-web WASM path configuration to index.html
+Fix: Use silero_vad_legacy.onnx for modelURL
