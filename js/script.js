@@ -995,9 +995,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // Dynamically import the VAD library.
-            const vadModule = await import('https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.13/dist/bundle.min.js');
-            // The actual VAD functionality is likely on the 'default' export of the module.
-            window.vad = vadModule.default; 
+            await import('https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.13/dist/bundle.min.js');
+
+            // The library might attach 'vad' to the window object asynchronously.
+            // We will wait for it to be available.
+            await new Promise(resolve => {
+                const interval = setInterval(() => {
+                    if (window.vad) {
+                        clearInterval(interval);
+                        resolve();
+                    }
+                }, 100);
+            });
 
             console.log('VAD library imported. Initializing MicVAD...');
             vad = await window.vad.MicVAD.new({

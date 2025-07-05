@@ -1,1 +1,1 @@
-Fix: VAD initialization error
+Fix: VAD initialization by using default export
