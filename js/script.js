@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let mediaRecorder = null;
     let audioChunks = [];
     let audioBlobUrl = null;
-    let audioStartTime = 0;
+    let audioStream = null;
     let notes = []; // Array to store all notes
     let folders = []; // Array to store folders
     let currentNoteId = null; // ID of the currently active note
@@ -70,13 +70,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentTagFilter = null; // New: ID of the currently active tag filter
     let history = []; // Stores snapshots of the transcript for undo/redo
     let historyIndex = -1; // Current position in the history array
-    let lastProcessedResultIndex = 0; // New: To track the last processed result index for final results
-    let silenceTimeoutId = null; // Moved: To manage silence timeout
     let audioContext = null;
     let analyser = null;
     let visualizerCanvasCtx = null;
-    let vad = null;
-    let isSpeaking = false;
 
     // --- Local Storage Management ---
     function loadData() {
@@ -431,7 +427,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Real-time Transcription ---
     async function startRecording() {
-        if (isRecording || !vad) return;
+        if (isRecording) return;
 
         isRecording = true;
         updateRecordButton();
@@ -440,34 +436,13 @@ document.addEventListener('DOMContentLoaded', () => {
         visualizerCanvasCtx = audioVisualizer.getContext('2d');
 
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    noiseSuppression: true,
-                    echoCancellation: true
-                }
-            });
+            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            recognition.start();
 
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioContext.createAnalyser();
-            const mediaStreamSource = audioContext.createMediaStreamSource(stream);
-            mediaStreamSource.connect(analyser);
-
-            if (loadSettings(false).recordAudio) {
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                audioStartTime = Date.now();
-
-                mediaRecorder.ondataavailable = (event) => {
-                    audioChunks.push(event.data);
-                };
-
-                mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                    audioBlobUrl = URL.createObjectURL(audioBlob);
-                };
-            }
-
-            vad.start();
+            const source = audioContext.createMediaStreamSource(audioStream);
+            source.connect(analyser);
             drawVisualizer();
 
         } catch (error) {
@@ -476,26 +451,20 @@ document.addEventListener('DOMContentLoaded', () => {
             isRecording = false;
             updateRecordButton();
             audioVisualizer.style.display = 'none';
-            if (audioContext) {
-                audioContext.close();
-            }
         }
     }
 
-    function stopRecording(unexpected = false) {
+    function stopRecording() {
         if (!isRecording) return;
         isRecording = false;
-
-        if (vad) {
-            vad.pause();
-        }
 
         if (recognition) {
             recognition.stop();
         }
 
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            mediaRecorder.stop();
+        if (audioStream) {
+            audioStream.getTracks().forEach(track => track.stop());
+            audioStream = null;
         }
 
         if (audioContext) {
@@ -507,24 +476,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updateRecordButton();
 
-        if (unexpected) {
-            statusMessage.textContent = '음성 인식이 중단되었습니다.';
-            return;
-        }
-
         if (finalTranscriptEl.textContent.trim().length > 0) {
             statusMessage.textContent = '녹음 완료.';
             postRecordingActions.style.display = 'flex';
-            if (audioBlobUrl) {
-                downloadAudioBtn.style.display = 'inline-block';
-            } else {
-                downloadAudioBtn.style.display = 'none';
-            }
             saveNote();
         } else {
             statusMessage.textContent = '녹음이 중지되었습니다. 인식된 내용이 없습니다.';
             postRecordingActions.style.display = 'none';
-            downloadAudioBtn.style.display = 'none';
         }
     }
 
@@ -736,6 +694,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function shareNotesToGoogleDrive() {
+        if (!navigator.share) {
+            alert('죄송합니다. 이 브라우저에서는 웹 공유 API를 지원하지 않습니다. 파일을 직접 다운로드하여 Google Drive에 업로드해주세요.');
+            return;
+        }
+
+        try {
+            const notesData = JSON.stringify(notes, null, 2);
+            const blob = new Blob([notesData], { type: 'application/json' });
+            const file = new File([blob], 'voice_notes_backup.json', { type: 'application/json' });
+
+            await navigator.share({
+                files: [file],
+                title: '음성 필기 백업',
+                text: '음성 필기 앱의 노트 백업 파일입니다.',
+            });
+            statusMessage.textContent = '노트가 성공적으로 공유되었습니다.';
+        } catch (error) {
+            console.error('Error sharing notes:', error);
+            statusMessage.textContent = `노트 공유 실패: ${error.message}`;
+        }
+    }
+
     // --- Settings ---
     const defaultSettings = {
         docTitleFormat: '[YYYY-MM-DD] 음성 메모',
@@ -800,6 +781,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
         localStorage.setItem('voiceNotesSettings', JSON.stringify(settings));
+        if (recognition) {
+            recognition.lang = settings.language;
+        }
         return settings;
     }
 
@@ -988,36 +972,51 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Initial Load ---
-    async function main() {
-        console.log('main function started.');
-        recordBtn.disabled = true;
-        statusMessage.textContent = 'VAD 라이브러리 로딩 중...';
+    function main() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.interimResults = true;
+            recognition.continuous = true;
+            recognition.lang = loadSettings(false).language;
 
-        try {
-            // The VAD library is now loaded via a script tag in index.html
-            // We just need to wait for the window.vad object to be available.
-            await new Promise(resolve => {
-                const interval = setInterval(() => {
-                    if (window.vad) {
-                        clearInterval(interval);
-                        resolve();
+            recognition.onresult = (event) => {
+                let interim_transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscriptEl.innerHTML += event.results[i][0].transcript;
+                    } else {
+                        interim_transcript += event.results[i][0].transcript;
                     }
-                }, 100);
-            });
+                }
+                interimTranscriptEl.textContent = interim_transcript;
+            };
 
-            console.log('VAD library available. Initializing MicVAD...');
-            console.log('MicVAD initialized.');
-            recordBtn.disabled = false;
-            statusMessage.textContent = '녹음 준비 완료';
-        } catch (error) {
-            console.error('Failed to initialize VAD:', error);
-            statusMessage.textContent = 'VAD 초기화 실패. 마이크 권한을 확인하거나 페이지를 새로고침하세요.';
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                statusMessage.textContent = `인식 오류: ${event.error}`;
+            };
+
+            recognition.onend = () => {
+                if (isRecording) {
+                    recognition.start();
+                }
+            };
+
+        } else {
+            recordBtn.disabled = true;
+            statusMessage.textContent = "이 브라우저에서는 음성 인식을 지원하지 않습니다.";
         }
 
         loadSettings();
         loadData(); // Load all notes and folders
         updateUndoRedoButtons(); // Initialize undo/redo button states
-        console.log('Initial load complete.');
+
+        // If SpeechRecognition is supported, enable the record button
+        if (SpeechRecognition) {
+            recordBtn.disabled = false;
+            statusMessage.textContent = '녹음 준비 완료';
+        }
     }
 
     main();
@@ -1049,50 +1048,3 @@ document.addEventListener('DOMContentLoaded', () => {
         renderNotesList(); // Re-render notes based on search input
     });
 });
-
-async function shareNotesToGoogleDrive() {
-    if (!navigator.share) {
-        alert('죄송합니다. 이 브라우저에서는 웹 공유 API를 지원하지 않습니다. 파일을 직접 다운로드하여 Google Drive에 업로드해주세요.');
-        return;
-    }
-
-    try {
-        const notesData = JSON.stringify(notes, null, 2);
-        const blob = new Blob([notesData], { type: 'application/json' });
-        const file = new File([blob], 'voice_notes_backup.json', { type: 'application/json' });
-
-        await navigator.share({
-            files: [file],
-            title: '음성 필기 백업',
-            text: '음성 필기 앱의 노트 백업 파일입니다.',
-        });
-        statusMessage.textContent = '노트가 성공적으로 공유되었습니다.';
-    } catch (error) {
-        console.error('Error sharing notes:', error);
-        statusMessage.textContent = `노트 공유 실패: ${error.message}`;
-    }
-}
-
-
-async function shareNotesToGoogleDrive() {
-    if (!navigator.share) {
-        alert('죄송합니다. 이 브라우저에서는 웹 공유 API를 지원하지 않습니다. 파일을 직접 다운로드하여 Google Drive에 업로드해주세요.');
-        return;
-    }
-
-    try {
-        const notesData = JSON.stringify(notes, null, 2);
-        const blob = new Blob([notesData], { type: 'application/json' });
-        const file = new File([blob], 'voice_notes_backup.json', { type: 'application/json' });
-
-        await navigator.share({
-            files: [file],
-            title: '음성 필기 백업',
-            text: '음성 필기 앱의 노트 백업 파일입니다.',
-        });
-        statusMessage.textContent = '노트가 성공적으로 공유되었습니다.';
-    } catch (error) {
-        console.error('Error sharing notes:', error);
-        statusMessage.textContent = `노트 공유 실패: ${error.message}`;
-    }
-}

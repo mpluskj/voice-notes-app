@@ -1,1 +1,1 @@
-Fix: Allow VAD library to load model from CDN
+Revert: VAD library integration attempts and clean up files
