@@ -983,10 +983,14 @@ document.addEventListener('DOMContentLoaded', () => {
             recognition.onresult = (event) => {
                 let interim_transcript = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscriptEl.innerHTML += event.results[i][0].transcript;
+                    const result = event.results[i];
+                    const transcript = result[0].transcript;
+                    console.log(`Result ${i}: isFinal=${result.isFinal}, Transcript=${transcript}`); // 디버깅용 로그 추가
+
+                    if (result.isFinal) {
+                        finalTranscriptEl.innerHTML += transcript;
                     } else {
-                        interim_transcript += event.results[i][0].transcript;
+                        interim_transcript += transcript;
                     }
                 }
                 interimTranscriptEl.textContent = interim_transcript;
