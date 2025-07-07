@@ -1,8 +1,6 @@
 
 // /js/audio.js
-import { MicVAD } from 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.24/dist/bundle.min.js';
-
-let vad = null;
+let vadInstance = null;
 let recognition = null;
 let audioContext = null;
 let analyser = null;
@@ -31,24 +29,24 @@ export function initAudio(settings, onSpeechStart, onSpeechEnd, onResult, onErro
 
 export async function startVAD(settings, visualizer, statusMessage, callbacks) {
     try {
-        vad = await MicVAD.new({
+        vadInstance = await vad.MicVAD.new({
             ...callbacks,
             modelURL: 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.24/dist/silero_vad.onnx',
             positiveSpeechThreshold: 0.6,
         });
-        vad.start();
+        vadInstance.start();
 
         // Setup visualizer
         visualizer.style.display = 'block';
         visualizerCanvasCtx = visualizer.getContext('2d');
-        audioStream = vad.audioStream;
-        audioContext = vad.audioContext;
+        audioStream = vadInstance.audioStream;
+        audioContext = vadInstance.audioContext;
         analyser = audioContext.createAnalyser();
         const source = audioContext.createMediaStreamSource(audioStream);
         source.connect(analyser);
         drawVisualizer(visualizer);
 
-        return vad;
+        return vadInstance;
     } catch (error) {
         console.error('Error starting VAD:', error);
         statusMessage.textContent = `Error: Failed to start VAD - ${error.message}`;
@@ -57,9 +55,9 @@ export async function startVAD(settings, visualizer, statusMessage, callbacks) {
 }
 
 export function stopVAD() {
-    if (vad) {
-        vad.destroy();
-        vad = null;
+    if (vadInstance) {
+        vadInstance.destroy();
+        vadInstance = null;
     }
     if (recognition && recognition.recognizing) {
         recognition.stop();
@@ -75,7 +73,7 @@ export function stopVAD() {
 }
 
 function drawVisualizer(visualizer) {
-    if (!vad) return; // Stop if VAD is not running
+    if (!vadInstance) return; // Stop if VAD is not running
 
     requestAnimationFrame(() => drawVisualizer(visualizer));
 
