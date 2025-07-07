@@ -1,6 +1,6 @@
 
 // /js/audio.js
-import { MicVAD } from 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.24/dist/web.mjs';
+import { MicVAD } from 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.24/dist/bundle.min.js';
 
 let vad = null;
 let recognition = null;
