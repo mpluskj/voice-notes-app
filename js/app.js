@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
         recordingStartTime: 0, // To track timestamps
         audioChunks: [],
         saveTimeout: null, // For debouncing save operations
+        currentSpeaker: 1, // Current speaker for diarization (Speaker 1, Speaker 2)
+        lastSpeechEndTime: 0, // Timestamp of the last speech segment end
+        speakerChangeThresholdMs: 2000, // Threshold for detecting speaker change (2 seconds of silence)
     };
 
     // --- DOM Elements ---
@@ -102,6 +105,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function startRecording() {
         state.isRecording = true;
         state.recordingStartTime = Date.now(); // Set start time
+        state.currentSpeaker = 1; // Reset speaker to 1
+        state.lastSpeechEndTime = Date.now(); // Reset last speech end time
         ui.updateRecordButton(true);
         elements.statusMessage.textContent = 'Listening for speech...';
 
@@ -149,6 +154,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleSpeechStart() {
         console.log("Speech started");
+        const now = Date.now();
+        if (state.lastSpeechEndTime > 0 && (now - state.lastSpeechEndTime) > state.speakerChangeThresholdMs) {
+            // If silence was longer than threshold, switch speaker
+            state.currentSpeaker = state.currentSpeaker === 1 ? 2 : 1;
+        }
         elements.statusMessage.textContent = 'Recording...';
         if (state.recognition) {
             state.recognition.start();
@@ -158,6 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleSpeechEnd(audio) {
         console.log("Speech ended");
         state.audioChunks.push(audio);
+        state.lastSpeechEndTime = Date.now(); // Record speech end time
         elements.statusMessage.textContent = 'Processing...';
         if (state.recognition) {
             state.recognition.stop();
@@ -171,8 +182,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const transcript = result[0].transcript;
             if (result.isFinal) {
                 const timestamp = Date.now() - state.recordingStartTime;
+                const speakerLabel = `화자 ${state.currentSpeaker}: `;
                 const span = document.createElement('span');
-                span.textContent = transcript + ' '; // Add space
+                span.textContent = speakerLabel + transcript + ' '; // Add speaker label and space
                 span.dataset.timestamp = timestamp;
                 span.classList.add('transcript-segment');
                 span.addEventListener('click', () => seekAudio(timestamp));
