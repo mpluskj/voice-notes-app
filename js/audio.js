@@ -29,7 +29,7 @@ export function initAudio(settings, onSpeechStart, onSpeechEnd, onResult, onErro
 
 export async function startVAD(settings, visualizer, statusMessage, callbacks) {
     try {
-        vadInstance = await vad.MicVAD.new({
+        vadInstance = await window.vad.MicVAD.new({
             ...callbacks,
             modelURL: 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.24/dist/silero_vad.onnx',
             positiveSpeechThreshold: 0.6,
