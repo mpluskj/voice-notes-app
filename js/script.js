@@ -1,3 +1,5 @@
+import { MicVAD } from 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.24/dist/web.mjs';
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const settingsBtn = document.getElementById('settings-btn');
@@ -54,6 +56,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
     const sidebar = document.querySelector('.sidebar');
     const audioVisualizer = document.getElementById('audio-visualizer');
+
+
+    // --- VAD (Voice Activity Detection) ---
+    let vad = null;
+    let vadIsRunning = false;
 
 
     // --- State ---
@@ -425,29 +432,52 @@ document.addEventListener('DOMContentLoaded', () => {
         finalTranscriptEl.innerHTML = highlightedContent;
     }
 
-    // --- Real-time Transcription ---
+    """    // --- Real-time Transcription ---
     async function startRecording() {
-        if (isRecording) return;
+        if (vadIsRunning) return;
 
         isRecording = true;
         updateRecordButton();
-        statusMessage.textContent = '녹음 중...';
+        statusMessage.textContent = 'Listening for speech...';
         audioVisualizer.style.display = 'block';
         visualizerCanvasCtx = audioVisualizer.getContext('2d');
 
         try {
-            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            recognition.start();
+            const settings = loadSettings(false);
+            vad = await MicVAD.new({
+                onSpeechStart: () => {
+                    console.log("Speech started");
+                    statusMessage.textContent = 'Recording...';
+                    if (recognition) {
+                        recognition.start();
+                    }
+                },
+                onSpeechEnd: (audio) => {
+                    console.log("Speech ended");
+                    statusMessage.textContent = 'Speech ended. Processing...';
+                    if (recognition) {
+                        recognition.stop();
+                    }
+                    // Optionally, do something with the recorded audio chunk
+                },
+                modelURL: 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.24/dist/silero_vad.onnx',
+                positiveSpeechThreshold: 0.6,
+            });
+            vad.start();
+            vadIsRunning = true;
 
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            // Start visualizer
+            audioStream = vad.audioStream;
+            audioContext = vad.audioContext;
             analyser = audioContext.createAnalyser();
             const source = audioContext.createMediaStreamSource(audioStream);
             source.connect(analyser);
             drawVisualizer();
 
+
         } catch (error) {
-            console.error('Error starting audio recording:', error);
-            statusMessage.textContent = `오류: 오디오 기록 시작 실패 - ${error.message}`;
+            console.error('Error starting VAD:', error);
+            statusMessage.textContent = `Error: Failed to start VAD - ${error.message}`;
             isRecording = false;
             updateRecordButton();
             audioVisualizer.style.display = 'none';
@@ -455,8 +485,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function stopRecording() {
-        if (!isRecording) return;
+        if (!vadIsRunning) return;
         isRecording = false;
+        vadIsRunning = false;
+
+        if (vad) {
+            vad.destroy();
+            vad = null;
+        }
 
         if (recognition) {
             recognition.stop();
@@ -468,23 +504,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (audioContext) {
-            audioContext.close();
+            // The VAD library handles closing the audio context
             audioContext = null;
         }
 
         audioVisualizer.style.display = 'none';
-
         updateRecordButton();
 
         if (finalTranscriptEl.textContent.trim().length > 0) {
-            statusMessage.textContent = '녹음 완료.';
+            statusMessage.textContent = 'Recording complete.';
             postRecordingActions.style.display = 'flex';
             saveNote();
         } else {
-            statusMessage.textContent = '녹음이 중지되었습니다. 인식된 내용이 없습니다.';
+            statusMessage.textContent = 'Recording stopped. No speech was detected.';
             postRecordingActions.style.display = 'none';
         }
-    }
+    }""
 
     function drawVisualizer() {
         if (!isRecording) return;
