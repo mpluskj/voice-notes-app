@@ -1,5 +1,7 @@
 
 // /js/audio.js
+import { MicVAD } from 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.24/dist/index.browser.js';
+
 let vadInstance = null;
 let recognition = null;
 let audioContext = null;
