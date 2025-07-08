@@ -1,4 +1,6 @@
 
+import { MicVAD } from '@ricky0123/vad-web';
+
 // /js/audio.js
 
 /**
@@ -35,12 +37,7 @@ export function initSpeechRecognition(settings, onResult, onError) {
  * @returns {Promise<object>} A promise that resolves with the VAD instance and related components.
  */
 export async function createVAD(settings, visualizerEl, callbacks) {
-    // MicVAD is expected to be on the window object from the script tag
-    if (!window.vad || !window.vad.MicVAD) {
-        throw new Error("VAD library not loaded. Please check the script tags in index.html.");
-    }
-
-    const vad = await window.vad.MicVAD.new({
+    const vad = await MicVAD.new({
         ...callbacks,
         modelURL: 'silero_vad.onnx',
         positiveSpeechThreshold: 0.6, // Adjust as needed
