@@ -1,5 +1,6 @@
 
 import { MicVAD } from '@ricky0123/vad-web';
+import * as ort from 'onnxruntime-web';
 
 // /js/audio.js
 
@@ -37,9 +38,13 @@ export function initSpeechRecognition(settings, onResult, onError) {
  * @returns {Promise<object>} A promise that resolves with the VAD instance and related components.
  */
 export async function createVAD(settings, visualizerEl, callbacks) {
+    // Configure onnxruntime-web for WASM paths
+    ort.env.wasm.wasmPaths = './'; // Assuming WASM files are copied to the root of dist
+
     const vad = await MicVAD.new({
         ...callbacks,
         modelURL: 'silero_vad.onnx',
+        ort: ort, // Pass the ort instance to MicVAD
         positiveSpeechThreshold: 0.6, // Adjust as needed
         minSpeechFrames: 3,
         redemptionFrames: 5,
