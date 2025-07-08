@@ -1,112 +1,127 @@
 
 // /js/audio.js
-import { MicVAD } from 'https://unpkg.com/@ricky0123/vad-web@latest/dist/real-time-vad.js';
 
-let vadInstance = null;
-let recognition = null;
-let audioContext = null;
-let analyser = null;
-let visualizerCanvasCtx = null;
-let audioStream = null;
-
-export function initAudio(settings, onSpeechStart, onSpeechEnd, onResult, onError) {
+/**
+ * Initializes the SpeechRecognition object.
+ * @param {object} settings - The application settings.
+ * @param {function} onResult - Callback for recognition results.
+ * @param {function} onError - Callback for recognition errors.
+ * @returns {SpeechRecognition | null} The recognition object or null if not supported.
+ */
+export function initSpeechRecognition(settings, onResult, onError) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
+        console.error("Speech Recognition not supported.");
         return null;
     }
 
-    recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognition();
     recognition.interimResults = true;
-    recognition.continuous = true;
+    recognition.continuous = true; // VAD will control the start and stop
     recognition.lang = settings.language;
 
     recognition.onresult = onResult;
     recognition.onerror = onError;
-    recognition.onend = () => {
-        // The VAD will handle restarting.
-    };
+    // onend is handled by the VAD logic in app.js
 
     return recognition;
 }
 
-export async function startVAD(settings, visualizer, statusMessage, callbacks) {
-    try {
-        vadInstance = await window.vad.MicVAD.new({
-            ...callbacks,
-            modelURL: 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.24/dist/silero_vad.onnx',
-            positiveSpeechThreshold: 0.6,
-        });
-        vadInstance.start();
+/**
+ * Creates and starts a new VAD instance.
+ * @param {object} settings - The application settings.
+ * @param {HTMLElement} visualizerEl - The canvas element for visualization.
+ * @param {object} callbacks - onSpeechStart, onSpeechEnd callbacks.
+ * @returns {Promise<object>} A promise that resolves with the VAD instance and related components.
+ */
+export async function createVAD(settings, visualizerEl, callbacks) {
+    // MicVAD is expected to be on the window object from the script tag
+    if (!window.vad || !window.vad.MicVAD) {
+        throw new Error("VAD library not loaded. Please check the script tags in index.html.");
+    }
 
-        // Setup visualizer
-        visualizer.style.display = 'block';
-        visualizerCanvasCtx = visualizer.getContext('2d');
-        audioStream = vadInstance.audioStream;
-        audioContext = vadInstance.audioContext;
-        analyser = audioContext.createAnalyser();
-        const source = audioContext.createMediaStreamSource(audioStream);
-        source.connect(analyser);
-        drawVisualizer(visualizer);
+    const vad = await window.vad.MicVAD.new({
+        ...callbacks,
+        modelURL: 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.24/dist/silero_vad.onnx',
+        positiveSpeechThreshold: 0.6, // Adjust as needed
+        minSpeechFrames: 3,
+        redemptionFrames: 5,
+        // Add other VAD options from settings if needed
+    });
 
-        return vadInstance;
-    } catch (error) {
-        console.error('Error starting VAD:', error);
-        statusMessage.textContent = `Error: Failed to start VAD - ${error.message}`;
-        throw error; // Re-throw to be caught by the caller
+    vad.start();
+
+    // Setup visualizer
+    visualizerEl.style.display = 'block';
+    const visualizerCtx = visualizerEl.getContext('2d');
+    const audioContext = vad.audioContext;
+    const analyser = audioContext.createAnalyser();
+    const source = audioContext.createMediaStreamSource(vad.audioStream);
+    source.connect(analyser);
+
+    const visualizerState = {
+        analyser,
+        visualizerCtx,
+        visualizerEl,
+        animationFrameId: null,
+    };
+
+    drawVisualizer(visualizerState); // Start drawing
+
+    return { vad, audioContext, visualizerState };
+}
+
+/**
+ * Stops the VAD instance and cleans up resources.
+ * @param {object} vad - The VAD instance.
+ * @param {object} visualizerState - The state object for the visualizer.
+ */
+export function destroyVAD(vad, visualizerState) {
+    if (vad) {
+        vad.destroy();
+    }
+    if (visualizerState && visualizerState.animationFrameId) {
+        cancelAnimationFrame(visualizerState.animationFrameId);
     }
 }
 
-export function stopVAD() {
-    if (vadInstance) {
-        vadInstance.destroy();
-        vadInstance = null;
-    }
-    if (recognition && recognition.recognizing) {
-        recognition.stop();
-    }
-    if (audioStream) {
-        audioStream.getTracks().forEach(track => track.stop());
-        audioStream = null;
-    }
-    if (audioContext) {
-        audioContext.close();
-        audioContext = null;
-    }
-}
+/**
+ * Draws the audio waveform on the canvas.
+ * @param {object} visualizerState - The state object for the visualizer.
+ */
+function drawVisualizer(visualizerState) {
+    const { analyser, visualizerCtx, visualizerEl } = visualizerState;
 
-function drawVisualizer(visualizer) {
-    if (!vadInstance) return; // Stop if VAD is not running
-
-    requestAnimationFrame(() => drawVisualizer(visualizer));
+    visualizerState.animationFrameId = requestAnimationFrame(() => drawVisualizer(visualizerState));
 
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
     analyser.getByteTimeDomainData(dataArray);
 
-    visualizerCanvasCtx.fillStyle = 'rgb(200, 200, 200)';
-    visualizerCanvasCtx.fillRect(0, 0, visualizer.width, visualizer.height);
+    visualizerCtx.fillStyle = 'rgb(240, 242, 245)'; // Match background
+    visualizerCtx.fillRect(0, 0, visualizerEl.width, visualizerEl.height);
 
-    visualizerCanvasCtx.lineWidth = 2;
-    visualizerCanvasCtx.strokeStyle = 'rgb(0, 0, 0)';
+    visualizerCtx.lineWidth = 2;
+    visualizerCtx.strokeStyle = 'rgb(98, 0, 238)'; // Match primary color
 
-    visualizerCanvasCtx.beginPath();
+    visualizerCtx.beginPath();
 
-    const sliceWidth = visualizer.width * 1.0 / bufferLength;
+    const sliceWidth = visualizerEl.width * 1.0 / bufferLength;
     let x = 0;
 
     for (let i = 0; i < bufferLength; i++) {
         const v = dataArray[i] / 128.0;
-        const y = v * visualizer.height / 2;
+        const y = v * visualizerEl.height / 2;
 
         if (i === 0) {
-            visualizerCanvasCtx.moveTo(x, y);
+            visualizerCtx.moveTo(x, y);
         } else {
-            visualizerCanvasCtx.lineTo(x, y);
+            visualizerCtx.lineTo(x, y);
         }
 
         x += sliceWidth;
     }
 
-    visualizerCanvasCtx.lineTo(visualizer.width, visualizer.height / 2);
-    visualizerCanvasCtx.stroke();
+    visualizerCtx.lineTo(visualizerEl.width, visualizerEl.height / 2);
+    visualizerCtx.stroke();
 }

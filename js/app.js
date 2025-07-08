@@ -5,7 +5,6 @@ import * as storage from './storage.js';
 import * as audio from './audio.js';
 import * as ui from './ui.js';
 
-
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- Central State Management ---
@@ -17,17 +16,18 @@ document.addEventListener('DOMContentLoaded', () => {
         currentFolderId: 'all',
         currentTagFilter: null,
         isRecording: false,
-        vadIsRunning: false,
         recognition: null,
-        vad: null,
+        vad: null, // VAD instance
+        visualizerState: null, // To control the visualizer animation
         history: [],
         historyIndex: -1,
-        recordingStartTime: 0, // To track timestamps
+        recordingStartTime: 0,
         audioChunks: [],
-        saveTimeout: null, // For debouncing save operations
-        currentSpeaker: 1, // Current speaker for diarization (Speaker 1, Speaker 2)
-        lastSpeechEndTime: 0, // Timestamp of the last speech segment end
-        speakerChangeThresholdMs: 2000, // Threshold for detecting speaker change (2 seconds of silence)
+        audioBlobUrl: null, // To store the URL of the complete recording
+        saveTimeout: null,
+        currentSpeaker: 1,
+        lastSpeechEndTime: 0,
+        speakerChangeThresholdMs: 2000,
     };
 
     // --- DOM Elements ---
@@ -35,25 +35,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initialization ---
     function main() {
-        // Load data and settings
         const { notes, folders } = storage.loadNotesAndFolders();
         state.notes = notes;
         state.folders = folders;
         state.settings = storage.loadSettings();
 
-        // Apply UI settings
         ui.applyTheme(state.settings.theme);
         ui.applyFontSize(state.settings.fontSize);
-        updateSettingsModal();
+        // updateSettingsModal(); // This should be implemented
 
-        // Initial Render
         renderAllUI();
 
-        // Setup Speech Recognition
-        state.recognition = audio.initAudio(
+        state.recognition = audio.initSpeechRecognition(
             state.settings,
-            handleSpeechStart,
-            handleSpeechEnd,
             handleRecognitionResult,
             handleRecognitionError
         );
@@ -63,10 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
             elements.statusMessage.textContent = "Browser doesn't support SpeechRecognition.";
         }
 
-        // Setup Event Listeners
         setupEventListeners();
 
-        // Load first note or create a new one
         if (state.notes.length > 0) {
             loadNote(state.notes[0].id);
         } else {
@@ -74,26 +66,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- State & UI Update Functions ---
+    // --- UI Update Functions ---
     function renderAllUI() {
         ui.renderFoldersList(state.folders, state.currentFolderId, switchFolder, deleteFolder);
         ui.renderTagsFilterList(state.notes, state.currentTagFilter, switchTagFilter);
         ui.renderNotesList(state.notes, state.currentNoteId, elements.noteSearchInput.value, state.currentFolderId, state.currentTagFilter, loadNote, deleteNote);
     }
 
-    function updateSettingsModal() {
-        // Populate settings modal with current state.settings
-    }
-
-    // --- Event Handlers ---
+    // --- Event Listeners ---
     function setupEventListeners() {
         elements.recordBtn.addEventListener('click', toggleRecording);
         elements.newNoteBtn.addEventListener('click', createNewNote);
         elements.noteTitleInput.addEventListener('input', saveCurrentNote);
         elements.finalTranscriptEl.addEventListener('input', saveCurrentNote);
-        // ... add all other event listeners here, calling the handler functions below
+        // ... other listeners
     }
 
+    // --- Recording Logic ---
     function toggleRecording() {
         if (state.isRecording) {
             stopRecording();
@@ -103,20 +92,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function startRecording() {
+        if (!state.recognition) {
+            ui.showToast("Speech recognition is not available.", "error");
+            return;
+        }
+
         state.isRecording = true;
-        state.recordingStartTime = Date.now(); // Set start time
-        state.currentSpeaker = 1; // Reset speaker to 1
-        state.lastSpeechEndTime = Date.now(); // Reset last speech end time
+        state.audioChunks = [];
+        state.audioBlobUrl = null;
+        state.recordingStartTime = Date.now();
+        state.currentSpeaker = 1;
+        state.lastSpeechEndTime = Date.now();
+
         ui.updateRecordButton(true);
-        elements.statusMessage.textContent = 'Listening for speech...';
+        elements.statusMessage.textContent = 'Initializing...';
 
         try {
-            state.vad = await audio.startVAD(state.settings, elements.audioVisualizer, elements.statusMessage, {
+            const { vad, visualizerState } = await audio.createVAD(state.settings, elements.audioVisualizer, {
                 onSpeechStart: handleSpeechStart,
                 onSpeechEnd: handleSpeechEnd,
             });
-            state.vadIsRunning = true;
+            state.vad = vad;
+            state.visualizerState = visualizerState;
+            elements.statusMessage.textContent = 'Listening for speech...';
         } catch (error) {
+            console.error("Failed to start VAD:", error);
+            elements.statusMessage.textContent = `Error: ${error.message}`;
+            ui.showToast(`VAD Error: ${error.message}`, 'error');
             state.isRecording = false;
             ui.updateRecordButton(false);
         }
@@ -126,15 +128,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!state.isRecording) return;
 
         state.isRecording = false;
-        state.vadIsRunning = false;
         ui.updateRecordButton(false);
-        audio.stopVAD();
+
+        if (state.vad) {
+            audio.destroyVAD(state.vad, state.visualizerState);
+            state.vad = null;
+            state.visualizerState = null;
+        }
+        // Ensure recognition is stopped if it was running
+        if (state.recognition) {
+            state.recognition.stop();
+        }
+
+        elements.audioVisualizer.style.display = 'none';
 
         if (state.audioChunks.length > 0) {
             const audioBlob = new Blob(state.audioChunks, { type: 'audio/wav' });
-            const audioUrl = URL.createObjectURL(audioBlob);
-            state.audioBlobUrl = audioUrl; // Save URL to state
-            elements.audioPlayer.src = audioUrl;
+            state.audioBlobUrl = URL.createObjectURL(audioBlob);
+            elements.audioPlayer.src = state.audioBlobUrl;
             elements.audioPlayer.style.display = 'block';
             elements.downloadAudioBtn.style.display = 'block';
         }
@@ -144,19 +155,16 @@ document.addEventListener('DOMContentLoaded', () => {
             elements.postRecordingActions.style.display = 'flex';
             saveCurrentNote();
         } else {
-            elements.statusMessage.textContent = 'Recording stopped.';
+            elements.statusMessage.textContent = 'Click the mic to start.';
             elements.postRecordingActions.style.display = 'none';
         }
-        
-        // Clear chunks for the next recording
-        state.audioChunks = [];
     }
 
+    // --- VAD & Recognition Callbacks ---
     function handleSpeechStart() {
         console.log("Speech started");
         const now = Date.now();
         if (state.lastSpeechEndTime > 0 && (now - state.lastSpeechEndTime) > state.speakerChangeThresholdMs) {
-            // If silence was longer than threshold, switch speaker
             state.currentSpeaker = state.currentSpeaker === 1 ? 2 : 1;
         }
         elements.statusMessage.textContent = 'Recording...';
@@ -167,12 +175,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleSpeechEnd(audio) {
         console.log("Speech ended");
-        state.audioChunks.push(audio);
-        state.lastSpeechEndTime = Date.now(); // Record speech end time
-        elements.statusMessage.textContent = 'Processing...';
         if (state.recognition) {
             state.recognition.stop();
         }
+        // The VAD library provides the audio chunk in the correct format
+        state.audioChunks.push(audio);
+        state.lastSpeechEndTime = Date.now();
+        elements.statusMessage.textContent = 'Processing...';
     }
 
     function handleRecognitionResult(event) {
@@ -184,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const timestamp = Date.now() - state.recordingStartTime;
                 const speakerLabel = `화자 ${state.currentSpeaker}: `;
                 const span = document.createElement('span');
-                span.textContent = speakerLabel + transcript + ' '; // Add speaker label and space
+                span.textContent = speakerLabel + transcript + ' ';
                 span.dataset.timestamp = timestamp;
                 span.classList.add('transcript-segment');
                 span.addEventListener('click', () => seekAudio(timestamp));
@@ -199,8 +208,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleRecognitionError(event) {
         console.error('Speech recognition error:', event.error);
         elements.statusMessage.textContent = `Recognition Error: ${event.error}`;
+        ui.showToast(`Recognition Error: ${event.error}`, 'error');
     }
 
+    // --- Note Management ---
     function createNewNote() {
         const newNote = {
             id: Date.now().toString(),
@@ -210,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tags: [],
             audioBlobUrl: null,
             timestamp: new Date().toISOString(),
-            folderId: state.currentFolderId || 'all'
+            folderId: state.currentFolderId === 'all' ? null : state.currentFolderId
         };
         state.notes.unshift(newNote);
         storage.saveNotes(state.notes);
@@ -222,11 +233,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const note = state.notes.find(n => n.id === id);
         if (note) {
             state.currentNoteId = note.id;
-            state.currentFolderId = note.folderId;
+            state.currentFolderId = note.folderId || 'all';
             elements.noteTitleInput.value = note.title || '새 노트';
             elements.finalTranscriptEl.innerHTML = note.transcript || '';
             elements.summaryOutputEl.innerHTML = note.summary || '';
             state.audioBlobUrl = note.audioBlobUrl;
+
             if (note.audioBlobUrl) {
                 elements.audioPlayer.src = note.audioBlobUrl;
                 elements.audioPlayer.style.display = 'block';
@@ -235,13 +247,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 elements.audioPlayer.style.display = 'none';
                 elements.downloadAudioBtn.style.display = 'none';
             }
-            // Re-add event listeners to the loaded transcript segments
+
             elements.finalTranscriptEl.querySelectorAll('.transcript-segment').forEach(span => {
                 span.addEventListener('click', () => seekAudio(parseInt(span.dataset.timestamp)));
             });
 
-            // renderTags(note.tags || []); // This needs to be implemented in ui.js
-            elements.postRecordingActions.style.display = 'flex';
+            elements.postRecordingActions.style.display = note.transcript ? 'flex' : 'none';
             elements.statusMessage.textContent = 'Note loaded.';
             renderAllUI();
         }
@@ -250,9 +261,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveCurrentNote() {
         if (!state.currentNoteId) return;
 
-        elements.statusMessage.textContent = 'Saving...'; // Show saving status
+        elements.statusMessage.textContent = 'Saving...';
 
-        // Debounce the save operation
         clearTimeout(state.saveTimeout);
         state.saveTimeout = setTimeout(() => {
             const noteIndex = state.notes.findIndex(n => n.id === state.currentNoteId);
@@ -261,14 +271,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 note.title = elements.noteTitleInput.value;
                 note.transcript = elements.finalTranscriptEl.innerHTML;
                 note.summary = elements.summaryOutputEl.innerHTML;
-                note.audioBlobUrl = state.audioBlobUrl;
+                note.audioBlobUrl = state.audioBlobUrl; // Save the audio URL
                 note.timestamp = new Date().toISOString();
                 storage.saveNotes(state.notes);
-                elements.statusMessage.textContent = 'Saved.'; // Show saved status
-                // ui.showToast('Note saved!'); // Toast can be redundant if we have status bar
-                renderAllUI(); // Re-render to update note list preview if needed
+                elements.statusMessage.textContent = 'Saved.';
+                renderAllUI();
             }
-        }, 500); // Save after 500ms of inactivity
+        }, 500);
     }
 
     function deleteNote(id) {
@@ -289,7 +298,9 @@ document.addEventListener('DOMContentLoaded', () => {
         state.currentFolderId = id;
         renderAllUI();
     }
-    function deleteFolder(id) { /* ... */ }
+
+    function deleteFolder(id) { /* Implementation needed */ }
+
     function switchTagFilter(tag) {
         state.currentTagFilter = tag;
         renderAllUI();
@@ -298,11 +309,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function seekAudio(timestamp) {
         const audioPlayer = elements.audioPlayer;
         if (audioPlayer && audioPlayer.src) {
-            audioPlayer.currentTime = timestamp / 1000; // Convert ms to seconds
+            audioPlayer.currentTime = timestamp / 1000; // ms to seconds
             audioPlayer.play();
         }
     }
-
 
     // --- Run Application ---
     main();
