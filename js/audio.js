@@ -42,7 +42,7 @@ export async function createVAD(settings, visualizerEl, callbacks) {
 
     const vad = await window.vad.MicVAD.new({
         ...callbacks,
-        modelURL: 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.24/dist/silero_vad.onnx',
+        modelURL: 'silero_vad.onnx',
         positiveSpeechThreshold: 0.6, // Adjust as needed
         minSpeechFrames: 3,
         redemptionFrames: 5,
