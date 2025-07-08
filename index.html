@@ -182,6 +182,17 @@
         </div>
     </div>
 
+    <!-- Configuration for onnxruntime-web -->
+    <script>
+      // Disable multi-threading to avoid cross-origin isolation issues
+      window.ort = {
+        env: {
+          wasm: {
+            numThreads: 1,
+          },
+        },
+      };
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.24/dist/bundle.min.js"></script>
     <script src="js/app.js" type="module"></script>
