@@ -42,7 +42,7 @@ export async function createVAD(settings, visualizerEl, callbacks) {
     ort.env.wasm.wasmPaths = './'; // Assuming WASM files are copied to the root of dist
 
     // Fetch the ONNX model directly
-    const modelResponse = await fetch('silero_vad.onnx');
+    const modelResponse = await fetch('silero_vad_legacy.onnx');
     if (!modelResponse.ok) {
         throw new Error(`Failed to load model: ${modelResponse.statusText}`);
     }
