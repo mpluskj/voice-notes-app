@@ -41,9 +41,16 @@ export async function createVAD(settings, visualizerEl, callbacks) {
     // Configure onnxruntime-web for WASM paths
     ort.env.wasm.wasmPaths = './'; // Assuming WASM files are copied to the root of dist
 
+    // Fetch the ONNX model directly
+    const modelResponse = await fetch('silero_vad.onnx');
+    if (!modelResponse.ok) {
+        throw new Error(`Failed to load model: ${modelResponse.statusText}`);
+    }
+    const modelArrayBuffer = await modelResponse.arrayBuffer();
+
     const vad = await MicVAD.new({
         ...callbacks,
-        modelURL: 'silero_vad.onnx',
+        model: modelArrayBuffer, // Pass the model as ArrayBuffer
         ort: ort, // Pass the ort instance to MicVAD
         positiveSpeechThreshold: 0.6, // Adjust as needed
         minSpeechFrames: 3,
