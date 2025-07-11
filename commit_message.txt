@@ -1,1 +1,1 @@
-fix: Correctly load Base64 audio data in app.js
+fix: Resolve webpack.config.js syntax error
