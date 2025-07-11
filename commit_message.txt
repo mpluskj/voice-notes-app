@@ -1,1 +1,1 @@
-Fix: Update webpack config for WASM and ONNX handling
+refactor: Separate VAD and visualization logic

@@ -109,12 +109,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const { vad, visualizerState } = await audio.createVAD(stream, state.settings, elements.audioVisualizer, {
+            state.visualizerState = ui.createVisualizer(stream, elements.audioVisualizer);
+            state.vad = await audio.createVAD(stream, state.settings, {
                 onSpeechStart: handleSpeechStart,
                 onSpeechEnd: handleSpeechEnd,
             });
-            state.vad = vad;
-            state.visualizerState = visualizerState;
             elements.statusMessage.textContent = 'Listening for speech...';
         } catch (error) {
             console.error("Failed to start VAD:", error);

@@ -210,3 +210,56 @@ export function showToast(message, duration = 3000) {
         }, 500);
     }, duration);
 }
+
+export function createVisualizer(stream, visualizerEl) {
+    visualizerEl.style.display = 'block';
+    const audioContext = new AudioContext();
+    const analyser = audioContext.createAnalyser();
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(analyser);
+
+    const visualizerState = {
+        analyser,
+        visualizerCtx: visualizerEl.getContext('2d'),
+        visualizerEl,
+        animationFrameId: null,
+    };
+
+    function draw() {
+        visualizerState.animationFrameId = requestAnimationFrame(draw);
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteTimeDomainData(dataArray);
+
+        const { visualizerCtx, visualizerEl } = visualizerState;
+        visualizerCtx.fillStyle = 'rgb(240, 242, 245)';
+        visualizerCtx.fillRect(0, 0, visualizerEl.width, visualizerEl.height);
+        visualizerCtx.lineWidth = 2;
+        visualizerCtx.strokeStyle = 'rgb(98, 0, 238)';
+        visualizerCtx.beginPath();
+
+        const sliceWidth = visualizerEl.width * 1.0 / bufferLength;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+            const v = dataArray[i] / 128.0;
+            const y = v * visualizerEl.height / 2;
+
+            if (i === 0) {
+                visualizerCtx.moveTo(x, y);
+            } else {
+                visualizerCtx.lineTo(x, y);
+            }
+
+            x += sliceWidth;
+        }
+
+        visualizerCtx.lineTo(visualizerEl.width, visualizerEl.height / 2);
+        visualizerCtx.stroke();
+    }
+
+    draw();
+
+    return visualizerState;
+}

@@ -37,7 +37,7 @@ export function initSpeechRecognition(settings, onResult, onError) {
  * @param {object} callbacks - onSpeechStart, onSpeechEnd callbacks.
  * @returns {Promise<object>} A promise that resolves with the VAD instance and related components.
  */
-export async function createVAD(stream, settings, visualizerEl, callbacks) {
+export async function createVAD(stream, settings, callbacks) {
     // Configure onnxruntime-web for WASM paths
     ort.env.wasm.wasmPaths = './';
 
@@ -53,24 +53,7 @@ export async function createVAD(stream, settings, visualizerEl, callbacks) {
 
     vad.start();
 
-    // Setup visualizer
-    visualizerEl.style.display = 'block';
-    const visualizerCtx = visualizerEl.getContext('2d');
-    const audioContext = new AudioContext();
-    const source = audioContext.createMediaStreamSource(stream);
-    const analyser = audioContext.createAnalyser();
-    source.connect(analyser);
-
-    const visualizerState = {
-        analyser,
-        visualizerCtx,
-        visualizerEl,
-        animationFrameId: null,
-    };
-
-    drawVisualizer(visualizerState); // Start drawing
-
-    return { vad, audioContext, visualizerState };
+    return vad;
 }
 
 /**

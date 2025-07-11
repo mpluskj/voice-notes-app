@@ -8,18 +8,12 @@ module.exports = {
   output: {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'dist'),
+    publicPath: '/',
   },
   resolve: {
     extensions: ['.js', '.json'],
   },
-  module: {
-    rules: [
-      {
-        test: /\.(wasm|onnx)$/,
-        type: 'asset/resource',
-      },
-    ],
-  },
+  
   plugins: [
     new CopyPlugin({
       patterns: [
