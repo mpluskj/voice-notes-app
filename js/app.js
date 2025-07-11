@@ -144,19 +144,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (state.audioChunks.length > 0) {
             const audioBlob = new Blob(state.audioChunks, { type: 'audio/wav' });
-            state.audioBlobUrl = URL.createObjectURL(audioBlob);
-            elements.audioPlayer.src = state.audioBlobUrl;
-            elements.audioPlayer.style.display = 'block';
-            elements.downloadAudioBtn.style.display = 'block';
-        }
-
-        if (elements.finalTranscriptEl.textContent.trim().length > 0) {
-            elements.statusMessage.textContent = 'Recording complete.';
-            elements.postRecordingActions.style.display = 'flex';
-            saveCurrentNote();
+            const reader = new FileReader();
+            reader.onload = () => {
+                state.audioBlobUrl = reader.result;
+                elements.audioPlayer.src = state.audioBlobUrl;
+                elements.audioPlayer.style.display = 'block';
+                elements.downloadAudioBtn.style.display = 'block';
+                saveCurrentNote(); // Save note after audio is processed
+            };
+            reader.readAsDataURL(audioBlob);
         } else {
-            elements.statusMessage.textContent = 'Click the mic to start.';
-            elements.postRecordingActions.style.display = 'none';
+             if (elements.finalTranscriptEl.textContent.trim().length > 0) {
+                elements.statusMessage.textContent = 'Recording complete.';
+                elements.postRecordingActions.style.display = 'flex';
+                saveCurrentNote();
+            } else {
+                elements.statusMessage.textContent = 'Click the mic to start.';
+                elements.postRecordingActions.style.display = 'none';
+            }
         }
     }
 
