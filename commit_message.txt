@@ -1,1 +1,1 @@
-fix: Store audio as Base64 to prevent blob errors
+fix: Update publicPath for GitHub Pages deployment

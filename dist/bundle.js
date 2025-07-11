@@ -420,7 +420,7 @@ eval("module.exports = __webpack_require__.p + \"2ad8a36a589c565fbee0.mjs\";\n\n
 /******/ 	
 /******/ 	/* webpack/runtime/publicPath */
 /******/ 	(() => {
-/******/ 		__webpack_require__.p = "/";
+/******/ 		__webpack_require__.p = "/voice-notes-app/";
 /******/ 	})();
 /******/ 	
 /******/ 	/* webpack/runtime/jsonp chunk loading */
