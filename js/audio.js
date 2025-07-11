@@ -37,20 +37,13 @@ export function initSpeechRecognition(settings, onResult, onError) {
  * @param {object} callbacks - onSpeechStart, onSpeechEnd callbacks.
  * @returns {Promise<object>} A promise that resolves with the VAD instance and related components.
  */
-export async function createVAD(settings, visualizerEl, callbacks) {
+export async function createVAD(stream, settings, visualizerEl, callbacks) {
     // Configure onnxruntime-web for WASM paths
-    ort.env.wasm.wasmPaths = './'; // Assuming WASM files are copied to the root of dist
-
-    // Fetch the ONNX model directly
-    const modelResponse = await fetch('silero_vad_legacy.onnx');
-    if (!modelResponse.ok) {
-        throw new Error(`Failed to load model: ${modelResponse.statusText}`);
-    }
-    const modelArrayBuffer = await modelResponse.arrayBuffer();
+    ort.env.wasm.wasmPaths = './';
 
     const vad = await MicVAD.new({
         ...callbacks,
-        model: modelArrayBuffer, // Pass the model as ArrayBuffer
+        stream: stream,
         ort: ort, // Pass the ort instance to MicVAD
         positiveSpeechThreshold: 0.6, // Adjust as needed
         minSpeechFrames: 3,
@@ -63,9 +56,9 @@ export async function createVAD(settings, visualizerEl, callbacks) {
     // Setup visualizer
     visualizerEl.style.display = 'block';
     const visualizerCtx = visualizerEl.getContext('2d');
-    const audioContext = vad.audioContext;
+    const audioContext = new AudioContext();
+    const source = audioContext.createMediaStreamSource(stream);
     const analyser = audioContext.createAnalyser();
-    const source = audioContext.createMediaStreamSource(vad.audioStream);
     source.connect(analyser);
 
     const visualizerState = {

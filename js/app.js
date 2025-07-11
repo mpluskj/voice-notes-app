@@ -108,7 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.statusMessage.textContent = 'Initializing...';
 
         try {
-            const { vad, visualizerState } = await audio.createVAD(state.settings, elements.audioVisualizer, {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const { vad, visualizerState } = await audio.createVAD(stream, state.settings, elements.audioVisualizer, {
                 onSpeechStart: handleSpeechStart,
                 onSpeechEnd: handleSpeechEnd,
             });

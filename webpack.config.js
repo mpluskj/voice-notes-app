@@ -25,7 +25,9 @@ module.exports = {
       patterns: [
         { from: 'index.html', to: 'index.html' },
         { from: 'css', to: 'css' },
-        // onnxruntime-web and vad-web assets are now handled by asset/resource type
+        { from: 'node_modules/onnxruntime-web/dist/*.wasm', to: '[name][ext]' },
+        { from: 'node_modules/@ricky0123/vad-web/dist/silero_vad_legacy.onnx', to: 'silero_vad.onnx' },
+        { from: 'node_modules/@ricky0123/vad-web/dist/vad.worklet.bundle.min.js', to: 'vad.worklet.js' }
       ],
     }),
   ],

@@ -2,10 +2,11 @@
   "name": "voice-notes-app",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "dist/bundle.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "webpack serve --open",
+    "build": "webpack"
   },
   "repository": {
     "type": "git",
@@ -19,6 +20,14 @@
   },
   "homepage": "https://github.com/mpluskj/voice-notes-app#readme",
   "dependencies": {
-    "express": "^5.1.0"
+    "@ricky0123/vad-web": "^0.0.24",
+    "copy-webpack-plugin": "^13.0.0",
+    "express": "^5.1.0",
+    "onnxruntime-web": "^1.22.0",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^6.0.1"
+  },
+  "devDependencies": {
+    "webpack-dev-server": "^5.2.2"
   }
 }

@@ -1,1 +1,1 @@
-fix: VAD 라이브러리 MicVAD import 경로 real-time-vad.js로 변경
+Fix: Update webpack config for WASM and ONNX handling
