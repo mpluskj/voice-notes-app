@@ -1,1 +1,1 @@
-Re-trigger CI workflow
+CI: Grant write permission to GITHUB_TOKEN
