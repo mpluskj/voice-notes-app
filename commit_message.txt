@@ -1,1 +1,1 @@
-Fix: Prevent SpeechRecognition InvalidStateError by removing redundant stop calls
+Fix: Re-add SpeechRecognition start call on speech start
