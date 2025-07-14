@@ -171,9 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleSpeechEnd(audio) {
         console.log("Speech ended");
-        if (state.recognition) {
-            state.recognition.stop();
-        }
         // The VAD library provides the audio chunk in the correct format
         state.audioChunks.push(audio);
         elements.statusMessage.textContent = 'Processing...';

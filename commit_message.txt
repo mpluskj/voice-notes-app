@@ -1,1 +1,1 @@
-Feat: Remove speaker separation and record by sentence
+Fix: Address SpeechRecognition and QuotaExceeded errors
