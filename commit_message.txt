@@ -1,1 +1,1 @@
-CI: Grant write permission to GITHUB_TOKEN
+Fix: Update bundle.js path in index.html for GitHub Pages

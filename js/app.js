@@ -101,8 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
         state.audioChunks = [];
         state.audioBlobUrl = null;
         state.recordingStartTime = Date.now();
-        state.currentSpeaker = 1;
-        state.lastSpeechEndTime = Date.now();
 
         ui.updateRecordButton(true);
         elements.statusMessage.textContent = 'Initializing...';
@@ -168,10 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- VAD & Recognition Callbacks ---
     function handleSpeechStart() {
         console.log("Speech started");
-        const now = Date.now();
-        if (state.lastSpeechEndTime > 0 && (now - state.lastSpeechEndTime) > state.speakerChangeThresholdMs) {
-            state.currentSpeaker = state.currentSpeaker === 1 ? 2 : 1;
-        }
         elements.statusMessage.textContent = 'Recording...';
         if (state.recognition) {
             state.recognition.start();
@@ -185,7 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // The VAD library provides the audio chunk in the correct format
         state.audioChunks.push(audio);
-        state.lastSpeechEndTime = Date.now();
         elements.statusMessage.textContent = 'Processing...';
     }
 
@@ -196,9 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const transcript = result[0].transcript;
             if (result.isFinal) {
                 const timestamp = Date.now() - state.recordingStartTime;
-                const speakerLabel = `화자 ${state.currentSpeaker}: `;
                 const span = document.createElement('span');
-                span.textContent = speakerLabel + transcript + ' ';
+                span.textContent = transcript + ' ';
                 span.dataset.timestamp = timestamp;
                 span.classList.add('transcript-segment');
                 span.addEventListener('click', () => seekAudio(timestamp));
