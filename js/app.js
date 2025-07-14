@@ -105,6 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ui.updateRecordButton(true);
         elements.statusMessage.textContent = 'Initializing...';
 
+        // Start SpeechRecognition here
+        if (state.recognition) {
+            state.recognition.start();
+        }
+
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             state.visualizerState = ui.createVisualizer(stream, elements.audioVisualizer);

@@ -1,1 +1,1 @@
-Fix: Re-add SpeechRecognition start call on speech start
+Fix: Remove redundant SpeechRecognition start call in handleSpeechStart
