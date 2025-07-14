@@ -1,1 +1,1 @@
-Fix: Remove redundant SpeechRecognition start call in handleSpeechStart
+Fix: Ensure SpeechRecognition starts only once in startRecording

@@ -42,6 +42,7 @@ export async function createVAD(stream, settings, callbacks) {
     ort.env.wasm.wasmPaths = 'dist/';
 
     const vad = await MicVAD.new({
+        onSpeechStart: () => {}, // Override to prevent MicVAD from starting recognition
         ...callbacks,
         stream: stream,
         ort: ort, // Pass the ort instance to MicVAD
