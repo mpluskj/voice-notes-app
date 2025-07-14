@@ -39,7 +39,7 @@ export function initSpeechRecognition(settings, onResult, onError) {
  */
 export async function createVAD(stream, settings, callbacks) {
     // Configure onnxruntime-web for WASM paths
-    ort.env.wasm.wasmPaths = './';
+    ort.env.wasm.wasmPaths = 'dist/';
 
     const vad = await MicVAD.new({
         ...callbacks,
