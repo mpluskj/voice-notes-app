@@ -167,6 +167,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleSpeechStart() {
         console.log("Speech started");
         elements.statusMessage.textContent = 'Recording...';
+        if (state.recognition) {
+            state.recognition.start();
+        }
     }
 
     function handleSpeechEnd(audio) {

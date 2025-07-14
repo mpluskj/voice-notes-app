@@ -1,1 +1,1 @@
-Fix: Address SpeechRecognition and QuotaExceeded errors
+Fix: Prevent SpeechRecognition InvalidStateError by removing redundant stop calls
