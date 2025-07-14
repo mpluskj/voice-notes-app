@@ -1,1 +1,1 @@
-Fix: Update bundle.js path in index.html for GitHub Pages
+Feat: Remove speaker separation and record by sentence

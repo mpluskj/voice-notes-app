@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         elements.audioVisualizer.style.display = 'none';
 
-        if (state.audioChunks.length > 0) {
+        if (state.audioChunks.length > 0 && state.settings.recordAudio) {
             const audioBlob = new Blob(state.audioChunks, { type: 'audio/wav' });
             const reader = new FileReader();
             reader.onload = () => {
@@ -167,9 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleSpeechStart() {
         console.log("Speech started");
         elements.statusMessage.textContent = 'Recording...';
-        if (state.recognition) {
-            state.recognition.start();
-        }
     }
 
     function handleSpeechEnd(audio) {
@@ -268,7 +265,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 note.title = elements.noteTitleInput.value;
                 note.transcript = elements.finalTranscriptEl.innerHTML;
                 note.summary = elements.summaryOutputEl.innerHTML;
-                note.audioBlobUrl = state.audioBlobUrl; // Save the audio URL
+                if (state.settings.recordAudio) {
+                    note.audioBlobUrl = state.audioBlobUrl; // Save the audio URL
+                } else {
+                    note.audioBlobUrl = null; // Do not save audio if setting is off
+                }
                 note.timestamp = new Date().toISOString();
                 storage.saveNotes(state.notes);
                 elements.statusMessage.textContent = 'Saved.';
