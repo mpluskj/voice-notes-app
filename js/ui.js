@@ -191,6 +191,25 @@ export function applyFontSize(size) {
     finalTranscriptEl.style.fontSize = `${size}px`;
 }
 
+export function toggleDarkMode() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
+    // Optionally, save this preference to settings
+}
+
+export function openSettingsModal() {
+    getDOMElements().settingsModal.style.display = 'block';
+}
+
+export function closeSettingsModal() {
+    getDOMElements().settingsModal.style.display = 'none';
+}
+
+export function toggleSidebar() {
+    getDOMElements().sidebar.classList.toggle('closed');
+}
+
 export function showToast(message, duration = 3000) {
     const toast = document.createElement('div');
     toast.classList.add('toast');

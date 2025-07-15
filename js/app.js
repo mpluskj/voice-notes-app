@@ -79,7 +79,157 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.newNoteBtn.addEventListener('click', createNewNote);
         elements.noteTitleInput.addEventListener('input', saveCurrentNote);
         elements.finalTranscriptEl.addEventListener('input', saveCurrentNote);
-        // ... other listeners
+        elements.settingsBtn.addEventListener('click', ui.openSettingsModal);
+        elements.closeModalBtn.addEventListener('click', ui.closeSettingsModal);
+        elements.saveSettingsBtn.addEventListener('click', saveSettings);
+        elements.summarizeBtn.addEventListener('click', summarize);
+        elements.saveToFileBtn.addEventListener('click', saveToFile);
+        elements.discardBtn.addEventListener('click', discardRecording);
+        elements.darkModeToggleBtn.addEventListener('click', ui.toggleDarkMode);
+        elements.sidebarToggleBtn.addEventListener('click', ui.toggleSidebar);
+        elements.addFolderBtn.addEventListener('click', addNewFolder);
+        elements.tagInput.addEventListener('keyup', handleTagInput);
+        elements.ttsBtn.addEventListener('click', speakText);
+        elements.exportAllNotesBtn.addEventListener('click', storage.exportAllNotes);
+        elements.importAllNotesBtn.addEventListener('click', () => elements.importAllNotesFileInput.click());
+        elements.importAllNotesFileInput.addEventListener('change', (event) => storage.importAllNotes(event, (notes, folders) => {
+            state.notes = notes;
+            state.folders = folders;
+            renderAllUI();
+        }));
+        elements.deleteAllNotesBtn.addEventListener('click', deleteAllNotes);
+        elements.noteSearchInput.addEventListener('input', () => renderAllUI());
+    }
+
+    // --- Settings ---
+    function saveSettings() {
+        state.settings = {
+            theme: elements.themeSelect.value,
+            fontSize: elements.fontSizeSlider.value,
+            language: elements.languageSelect.value,
+            geminiApiKey: elements.geminiApiKeyInput.value,
+            recordAudio: elements.recordAudioCheckbox.checked,
+            // ... other settings
+        };
+        storage.saveSettings(state.settings);
+        ui.applyTheme(state.settings.theme);
+        ui.applyFontSize(state.settings.fontSize);
+        if (state.recognition) {
+            state.recognition.lang = state.settings.language;
+        }
+        elements.settingsModal.style.display = 'none';
+        ui.showToast('Settings saved!');
+    }
+
+    // --- Summarization ---
+    async function summarize() {
+        const transcript = elements.finalTranscriptEl.textContent;
+        if (!transcript) {
+            ui.showToast('Nothing to summarize.', 'error');
+            return;
+        }
+        if (!state.settings.geminiApiKey) {
+            ui.showToast('Please enter your Gemini API key in the settings.', 'error');
+            return;
+        }
+
+        elements.statusMessage.textContent = 'Summarizing...';
+        try {
+            // This is a placeholder for the actual API call
+            const summary = await getSummaryFromGemini(transcript, state.settings.geminiApiKey);
+            elements.summaryOutputEl.innerHTML = summary;
+            saveCurrentNote();
+            elements.statusMessage.textContent = 'Summary complete.';
+        } catch (error) {
+            console.error('Summarization error:', error);
+            ui.showToast(`Summarization failed: ${error.message}`, 'error');
+            elements.statusMessage.textContent = 'Summarization failed.';
+        }
+    }
+    
+    async function getSummaryFromGemini(text, apiKey) {
+        // In a real app, you would make a fetch call to the Gemini API
+        // For this example, we'll just simulate a delay and return a dummy summary.
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve(`<p>This is a dummy summary of the transcript: ${text.substring(0, 100)}...</p>`);
+            }, 1000);
+        });
+    }
+
+
+    // --- File & Note Management ---
+    function saveToFile() {
+        const format = elements.exportFormatSelect.value;
+        const title = elements.noteTitleInput.value || 'Untitled';
+        const content = elements.finalTranscriptEl.innerHTML;
+        const blob = new Blob([content], { type: `text/${format}` });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${title}.${format}`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function discardRecording() {
+        if (confirm('Are you sure you want to discard the current recording and transcript?')) {
+            elements.finalTranscriptEl.innerHTML = '';
+            elements.interimTranscriptEl.innerHTML = '';
+            elements.summaryOutputEl.innerHTML = '';
+            elements.audioPlayer.style.display = 'none';
+            elements.downloadAudioBtn.style.display = 'none';
+            elements.postRecordingActions.style.display = 'none';
+            state.audioBlobUrl = null;
+            state.audioChunks = [];
+            saveCurrentNote();
+        }
+    }
+    
+    function addNewFolder() {
+        const folderName = prompt("Enter new folder name:");
+        if (folderName) {
+            const newFolder = { id: Date.now().toString(), name: folderName };
+            state.folders.push(newFolder);
+            storage.saveFolders(state.folders);
+            renderAllUI();
+        }
+    }
+
+    function handleTagInput(event) {
+        if (event.key === 'Enter' && elements.tagInput.value.trim() !== '') {
+            const note = state.notes.find(n => n.id === state.currentNoteId);
+            if (note) {
+                const tags = elements.tagInput.value.trim().split(',').map(t => t.trim()).filter(t => t);
+                note.tags = [...new Set([...note.tags, ...tags])]; // Add new tags, avoid duplicates
+                saveCurrentNote();
+                elements.tagInput.value = '';
+            }
+        }
+    }
+    
+    function deleteAllNotes() {
+        if (confirm('Are you sure you want to delete ALL notes? This cannot be undone.')) {
+            state.notes = [];
+            state.folders = [];
+            storage.saveNotes(state.notes);
+            storage.saveFolders(state.folders);
+            createNewNote(); // Start with a fresh note
+            renderAllUI();
+            ui.showToast('All notes have been deleted.', 'error');
+        }
+    }
+
+    // --- TTS ---
+    function speakText() {
+        const text = elements.finalTranscriptEl.textContent;
+        if (text && 'speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = state.settings.language;
+            window.speechSynthesis.speak(utterance);
+        } else {
+            ui.showToast('TTS is not available.', 'error');
+        }
     }
 
     // --- Recording Logic ---
