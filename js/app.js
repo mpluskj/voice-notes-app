@@ -90,7 +90,10 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.addFolderBtn.addEventListener('click', addNewFolder);
         elements.tagInput.addEventListener('keyup', handleTagInput);
         elements.ttsBtn.addEventListener('click', speakText);
-        elements.exportAllNotesBtn.addEventListener('click', storage.exportAllNotes);
+        elements.exportAllNotesBtn.addEventListener('click', () => {
+            storage.exportAllNotes();
+            ui.showToast('All notes exported successfully!');
+        });
         elements.importAllNotesBtn.addEventListener('click', () => elements.importAllNotesFileInput.click());
         elements.importAllNotesFileInput.addEventListener('change', (event) => storage.importAllNotes(event, (notes, folders) => {
             state.notes = notes;
@@ -149,12 +152,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         elements.statusMessage.textContent = 'Summarizing...';
+        ui.showToast('Summarizing...');
         try {
             // This is a placeholder for the actual API call
             const summary = await getSummaryFromGemini(transcript, state.settings.geminiApiKey);
             elements.summaryOutputEl.innerHTML = summary;
             saveCurrentNote();
             elements.statusMessage.textContent = 'Summary complete.';
+            ui.showToast('Summary complete.');
         } catch (error) {
             console.error('Summarization error:', error);
             ui.showToast(`Summarization failed: ${error.message}`, 'error');
@@ -200,6 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- File & Note Management ---
     function saveToFile() {
+        ui.showToast('Saving to file...');
         const format = elements.exportFormatSelect.value;
         const title = elements.noteTitleInput.value || 'Untitled';
         const content = elements.finalTranscriptEl.innerHTML;
@@ -210,6 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
         a.download = `${title}.${format}`;
         a.click();
         URL.revokeObjectURL(url);
+        ui.showToast('File saved successfully!');
     }
 
     function discardRecording() {
@@ -372,11 +379,24 @@ document.addEventListener('DOMContentLoaded', () => {
         let interim_transcript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
             const result = event.results[i];
-            const transcript = result[0].transcript;
+            let transcript = result[0].transcript;
+
             if (result.isFinal) {
+                // Add period if missing and not ending with common punctuation
+                if (!/[.!?]$/.test(transcript.trim())) {
+                    transcript += '.';
+                }
+
                 const timestamp = Date.now() - state.recordingStartTime;
                 const span = document.createElement('span');
-                span.textContent = transcript + ' ';
+
+                // Add new paragraph if finalTranscriptEl is not empty and this is a new final segment
+                if (elements.finalTranscriptEl.textContent.trim().length > 0) {
+                    elements.finalTranscriptEl.appendChild(document.createElement('br'));
+                    elements.finalTranscriptEl.appendChild(document.createElement('br'));
+                }
+
+                span.textContent = transcript + ' '; // Add space after period
                 span.dataset.timestamp = timestamp;
                 span.classList.add('transcript-segment');
                 span.addEventListener('click', () => seekAudio(timestamp));

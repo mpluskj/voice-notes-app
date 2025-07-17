@@ -57,6 +57,8 @@ export function exportAllNotes() {
     a.download = 'voice-notes-backup.json';
     a.click();
     URL.revokeObjectURL(url);
+    // Assuming ui.showToast is available globally or passed as an argument
+    // For now, we'll assume it's available via import in app.js which calls this function
 }
 
 export function importAllNotes(event, callback) {
@@ -70,12 +72,14 @@ export function importAllNotes(event, callback) {
                     saveNotes(data.notes);
                     saveFolders(data.folders);
                     callback(data.notes, data.folders);
-                    alert('Notes and folders imported successfully!');
+                    // Assuming ui.showToast is available globally or passed as an argument
+                    // For now, we'll assume it's available via import in app.js which calls this function
+                    ui.showToast('Notes and folders imported successfully!');
                 } else {
-                    alert('Invalid backup file format.');
+                    ui.showToast('Invalid backup file format.', 'error');
                 }
             } catch (error) {
-                alert('Error parsing backup file.');
+                ui.showToast('Error parsing backup file.', 'error');
             }
         };
         reader.readAsText(file);
