@@ -99,6 +99,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
         elements.deleteAllNotesBtn.addEventListener('click', deleteAllNotes);
         elements.noteSearchInput.addEventListener('input', () => renderAllUI());
+
+        // Close sidebar when clicking outside or pressing Escape
+        document.addEventListener('click', (event) => {
+            const sidebar = elements.sidebar;
+            const sidebarToggleBtn = elements.sidebarToggleBtn;
+            if (sidebar.classList.contains('open') && !sidebar.contains(event.target) && !sidebarToggleBtn.contains(event.target)) {
+                ui.toggleSidebar();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && elements.sidebar.classList.contains('open')) {
+                ui.toggleSidebar();
+            }
+        });
     }
 
     // --- Settings ---
