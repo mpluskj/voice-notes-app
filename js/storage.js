@@ -46,3 +46,39 @@ export function loadSettings() {
     return { ...defaultSettings, ...savedSettings };
 }
 
+export function exportAllNotes() {
+    const notes = JSON.parse(localStorage.getItem('voiceNotes')) || [];
+    const folders = JSON.parse(localStorage.getItem('voiceFolders')) || [];
+    const data = { notes, folders };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'voice-notes-backup.json';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+export function importAllNotes(event, callback) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.notes && data.folders) {
+                    saveNotes(data.notes);
+                    saveFolders(data.folders);
+                    callback(data.notes, data.folders);
+                    alert('Notes and folders imported successfully!');
+                } else {
+                    alert('Invalid backup file format.');
+                }
+            } catch (error) {
+                alert('Error parsing backup file.');
+            }
+        };
+        reader.readAsText(file);
+    }
+}
+
