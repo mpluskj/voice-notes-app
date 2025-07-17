@@ -207,7 +207,7 @@ export function closeSettingsModal() {
 }
 
 export function toggleSidebar() {
-    getDOMElements().sidebar.classList.toggle('closed');
+    getDOMElements().sidebar.classList.toggle('open');
 }
 
 export function showToast(message, duration = 3000) {
