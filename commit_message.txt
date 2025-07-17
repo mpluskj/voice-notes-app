@@ -1,1 +1,1 @@
-Fix: Ensure SpeechRecognition starts only once in startRecording
+Fix: Enable UI interaction for menu, settings, and dark mode

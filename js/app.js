@@ -148,14 +148,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function getSummaryFromGemini(text, apiKey) {
-        // In a real app, you would make a fetch call to the Gemini API
-        // For this example, we'll just simulate a delay and return a dummy summary.
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve(`<p>This is a dummy summary of the transcript: ${text.substring(0, 100)}...</p>`);
-            }, 1000);
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+
+    const body = JSON.stringify({
+        contents: [{
+            parts: [{
+                text: `다음 텍스트를 요약해줘: ${text}`
+            }]
+        }]
+    });
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: headers,
+            body: body
         });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error.message);
+        }
+
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text;
+    } catch (error) {
+        console.error('Error calling Gemini API:', error);
+        throw error;
     }
+}
 
 
     // --- File & Note Management ---
