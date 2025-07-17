@@ -393,7 +393,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Add new paragraph if finalTranscriptEl is not empty and this is a new final segment
                 if (elements.finalTranscriptEl.textContent.trim().length > 0) {
                     elements.finalTranscriptEl.appendChild(document.createElement('br'));
-                    elements.finalTranscriptEl.appendChild(document.createElement('br'));
                 }
 
                 span.textContent = transcript + ' '; // Add space after period
